@@ -1,0 +1,35 @@
+include "src/maps/sparse_meter_hash_map.mlpl";
+
+@test {name: "contract", tags: ["migration", "maps"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  empty = u:new_map(5);
+  u:assert_true(u:valid(empty), "empty invariant failed")?;
+  u:assert_err(u:lookup(empty, 0), "empty lookup should miss")?;
+  one = u:insert(empty, 0, 10)?;
+  u:assert_eq(u:lookup(one, 0)?, 10, "insert lookup failed")?;
+  u:assert_eq(one.size, 1, "insert size failed")?;
+
+  two = u:insert(one, 5, 20)?;
+  three = u:insert(two, 10, 30)?;
+  wrapped = u:insert(three, 15, 40)?;
+  u:assert_eq(wrapped.keys, [15, 0, 0, 5, 10], "collision chain or wraparound layout changed")?;
+  u:assert_eq(u:lookup(wrapped, 15)?, 40, "wraparound lookup failed")?;
+  u:assert_eq(u:lookup(wrapped, 10)?, 30, "collision-chain lookup failed")?;
+  u:assert_true(u:valid(wrapped), "collision map invariant failed")?;
+
+  updated = u:insert(wrapped, 5, 25)?;
+  u:assert_eq(u:lookup(updated, 5)?, 25, "duplicate-key update failed")?;
+  u:assert_eq(updated.size, 4, "duplicate update changed size")?;
+  zero = u:insert(updated, -1, 0)?;
+  u:assert_eq(u:lookup(zero, -1)?, 0, "negative key or stored zero failed")?;
+  u:assert_eq(zero.size, 5, "negative key did not fill table")?;
+  u:assert_err(u:insert(zero, 99, 1), "full table insert should fail")?;
+  u:assert_err(u:lookup(zero, 777), "full table missing lookup should terminate")?;
+  u:assert_err(u:insert(empty, 1.5, 1), "fractional key should fail")?;
+  u:assert_eq(u:lookup(two, 5)?, 20, "later updates changed retained version")?;
+  u:assert_eq(one.size, 1, "later collisions changed first version")?;
+  u:assert_true(u:valid(zero), "full map invariant failed")?;
+  ok({test: "open-address-map", cases: 17})
+}
+
+u:run_registered_tests()

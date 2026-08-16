@@ -1,0 +1,27 @@
+# Mini-app: update and retrieve quantities for bounded warehouse bin IDs.
+#
+# Bin IDs are dense integers 0 through 9. Parallel present/value arrays make a
+# direct-address map: lookup indexes the key directly and presence distinguishes
+# an absent bin from a stored zero quantity.
+#
+# data_structure: bounded direct-address numeric map
+# algorithm: insert/update, lookup, and remove by direct index
+# dynamic_size: no (fixed 10-bin universe)
+# logical_complexity: insert/update/lookup/remove O(1)
+# current_copy_complexity: each scatter copies O(universe size) storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# tradeoff: fastest bounded lookup, but space is proportional to key universe
+
+include "../../src/maps/warehouse_direct_map.mlpl";
+
+empty = u:new_map(10);
+stock1 = unwrap(u:insert(empty, 2, 40));
+stock2 = unwrap(u:insert(stock1, 7, 15));
+restocked = unwrap(u:insert(stock2, 2, 55));
+current = unwrap(u:remove(restocked, 7));
+
+print("Problem: restock bin 2 and remove depleted bin 7 while retaining yesterday's snapshot.");
+print("Solution: direct addressing performs bounded integer-key lookup without hashing.");
+{bin_2_quantity: unwrap(u:lookup(current, 2)), bin_7_present: current.present, yesterday_bin_2_quantity: unwrap(u:lookup(stock2, 2)), entry_count: current.size}

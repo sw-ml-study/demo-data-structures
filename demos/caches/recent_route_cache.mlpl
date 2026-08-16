@@ -1,0 +1,29 @@
+# Mini-app: retain only the three most recently used numeric route results.
+#
+# A recursive numeric-key lookup delegates recency ordering to an index-backed
+# doubly linked list. Cache hits move a node to the front; insertion at capacity
+# retires the tail and appends a new immutable-arena node.
+#
+# data_structure: bounded numeric LRU cache
+# algorithm: lookup, detach, attach-front, promote, least-recent eviction
+# representation: parallel key/value/prev/next/active arrays, -1 null handles
+# dynamic_size: yes, bounded live set with append-only version-local arena
+# logical_complexity: O(n) current lookup, O(1) known-handle recency rewiring
+# current_copy_complexity: immutable scatter/concat copies parallel arrays
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: imported hash lookup, lexical locals, persistent vectors
+
+include "../../src/caches/recent_route_cache.mlpl";
+
+def u:keys_from(cache, handle, remaining) { "Continue keys from the supplied recursive state."; if eq(handle, -1) + eq(remaining, 0) { fill([0], 0) } else { concat(take(cache.keys, 0, handle), u:keys_from(cache, take(cache.next_handles, 0, handle), remaining - 1)) } }
+def u:recent_keys(cache) { "Return the recent keys result for the supplied cache."; u:keys_from(cache, cache.head, cache.size) }
+
+morning = u:put(u:put(u:put(u:new_cache(3), -2, 20), 5, 0), 9, 90);
+hit = unwrap(u:access(morning, -2));
+with_new_route = u:put(hit.cache, 12, 120);
+current = u:put(with_new_route, 9, 99);
+print("Problem: retain only three recently used route results while preserving numeric route IDs.");
+print("Solution: lookup delegates recency changes to an immutable indexed doubly linked list.");
+{most_recent_first: u:recent_keys(current), route_9_value: unwrap(u:access(current, 9)).value, evicted_route_5: is_err(u:access(current, 5)), retained_morning_route_5_zero: unwrap(u:access(morning, 5)).value, arena_nodes: current.nodes, live_entries: current.size}

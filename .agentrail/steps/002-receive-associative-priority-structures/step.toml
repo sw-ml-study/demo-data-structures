@@ -1,6 +1,6 @@
 number = 2
 slug = "receive-associative-priority-structures"
-status = "pending"
+status = "in-progress"
 description = "Receive sets, foundational hashing/maps, heaps/priority queues, and LRU/cache..."
 role = "production"
 context_files = []

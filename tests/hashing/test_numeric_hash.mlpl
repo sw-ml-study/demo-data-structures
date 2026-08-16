@@ -1,0 +1,27 @@
+include "src/hashing/device_worker_assignment.mlpl";
+
+@test {name: "contract", tags: ["migration", "hashing"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  u:assert_eq(u:hash_bucket(0, 8)?.bucket, 1, "golden hash for zero changed")?;
+  u:assert_eq(u:hash_bucket(1, 8)?.bucket, 3, "golden hash for one changed")?;
+  u:assert_eq(u:hash_bucket(-1, 8)?.bucket, 6, "golden hash for negative one changed")?;
+  u:assert_eq(u:hash_bucket(7, 8)?.bucket, 7, "golden positive boundary changed")?;
+  u:assert_eq(u:hash_bucket(-7, 8)?.bucket, 2, "golden negative normalization changed")?;
+  u:assert_eq(u:hash_bucket(42, 8)?.bucket, 5, "golden ordinary key changed")?;
+  u:assert_eq(u:hash_bucket(-1, 8)?.normalized, 1, "negative zigzag normalization failed")?;
+  u:assert_eq(u:hash_bucket(1, 8)?.normalized, 2, "positive zigzag normalization failed")?;
+  first = u:hash_bucket(205, 7)?;
+  second = u:hash_bucket(205, 7)?;
+  u:assert_eq(first.bucket, second.bucket, "hash is not deterministic")?;
+  u:assert_eq(u:hash_bucket(0, 8)?.bucket, u:hash_bucket(4, 8)?.bucket, "collision fixture changed")?;
+  u:assert_true(u:all_in_range([-1000000, -9, -1, 0, 1, 9, 1000000], 13, 0), "bucket escaped range")?;
+  u:assert_err(u:hash_bucket(1.5, 8), "fractional key should fail")?;
+  u:assert_err(u:hash_bucket([1, 2], 8), "non-scalar key should fail")?;
+  u:assert_err(u:hash_bucket(1000001, 8), "key beyond precision policy should fail")?;
+  u:assert_err(u:hash_bucket(1, 0), "zero capacity should fail")?;
+  u:assert_err(u:hash_bucket(1, -3), "negative capacity should fail")?;
+  u:assert_err(u:hash_bucket(1, 2.5), "fractional capacity should fail")?;
+  ok({test: "numeric-hash-mixing", cases: 17})
+}
+
+u:run_registered_tests()

@@ -1,0 +1,33 @@
+include "src/maps/chained_sensor_registry.mlpl";
+
+@test {name: "contract", tags: ["migration", "maps"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  empty_map = u:new_map(3); u:assert_err(u:get(empty_map, 9), "empty lookup should fail")?;
+  one = u:put(empty_map, 0, 10); two = u:put(one, 3, 0); three = u:put(two, 6, 60);
+  u:assert_eq(three.capacity, 3, "load one should not resize")?;
+  u:assert_eq(u:get(three, 3)?, 0, "stored zero lost in chain")?;
+  u:assert_eq(three.size, 3, "collision inserts changed size")?;
+  first_growth = u:put(three, 9, 90);
+  u:assert_eq(first_growth.capacity, 7, "fourth insert should resize")?;
+  u:assert_eq(u:get(first_growth, 0)?, 10, "rehash lost key zero")?;
+  u:assert_eq(u:get(first_growth, 6)?, 60, "rehash lost collision")?;
+  revised_map = u:put(first_growth, 6, 66);
+  u:assert_eq(revised_map.size, 4, "duplicate update grew size")?;
+  u:assert_eq(revised_map.capacity, 7, "duplicate update resized")?;
+  u:assert_eq(u:get(revised_map, 6)?, 66, "duplicate update lost value")?;
+  head_removed = u:remove(revised_map, 9)?;
+  u:assert_err(u:get(head_removed, 9), "head deletion retained key")?;
+  interior_removed = u:remove(head_removed, 3)?;
+  u:assert_err(u:get(interior_removed, 3), "interior deletion retained key")?;
+  u:assert_eq(u:get(interior_removed, 0)?, 10, "interior deletion broke chain")?;
+  u:assert_err(u:remove(interior_removed, 99), "missing delete should fail")?;
+  negative_map = u:put(interior_removed, -3, -30);
+  u:assert_eq(u:get(negative_map, -3)?, -30, "negative key failed")?;
+  u:assert_eq(u:get(first_growth, 3)?, 0, "later changes mutated old version")?;
+  u:assert_true(u:valid(negative_map), "representation invariant failed")?;
+  malformed_map = {heads: negative_map.heads, keys: negative_map.keys, values: negative_map.values, next_handles: scatter(negative_map.next_handles, 0, 999), active: negative_map.active, capacity: negative_map.capacity, size: negative_map.size, nodes: negative_map.nodes};
+  u:assert_false(u:valid(malformed_map), "malformed handle passed validation")?;
+  ok({test: "separate-chaining", cases: 18})
+}
+
+u:run_registered_tests()

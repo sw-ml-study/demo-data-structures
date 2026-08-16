@@ -12,7 +12,9 @@ tests *args:
 audit:
     ./scripts/validate-catalog catalog/demos.tsv
     ./scripts/validate-catalog catalog/tests.tsv
+    ./scripts/check-web-standalone
     ./tests/test-bootstrap
     ./tests/test-sequential-migration
+    ./tests/test-associative-priority-migration
 
 check: audit demos tests

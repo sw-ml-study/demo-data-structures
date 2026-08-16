@@ -1,0 +1,21 @@
+# Mini-app: grow a sparse meter map when occupancy would exceed 75%.
+#
+# Live entries are recursively reinserted into a table of size 2n+1. Rehashing
+# preserves key/value behavior while discarding tombstones.
+#
+# data_structure: resizable open-address hash map with tombstones
+# algorithm: load-threshold growth and recursive rehash
+# dynamic_size: yes
+# logical_complexity: expected amortized O(1), resize O(n)
+# current_copy_complexity: immutable updates/rehash copy arrays repeatedly
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+
+include "../../src/maps/growing_meter_hash_map.mlpl";
+
+map1 = unwrap(u:put(u:new_map(5), 0, 100)); map2 = unwrap(u:put(map1, 5, 200)); map3 = unwrap(u:put(map2, 10, 0));
+deleted = unwrap(u:remove(map3, 5)); restored = unwrap(u:put(deleted, 15, 400)); grown = unwrap(u:put(restored, 20, 500));
+print("Problem: keep sparse meter readings available while the table grows and removes tombstones.");
+print("Solution: crossing 75% occupancy rehashes live entries into a larger table.");
+{old_capacity: restored.capacity, new_capacity: grown.capacity, meter_10_zero: unwrap(u:get(grown, 10)), meter_15: unwrap(u:get(grown, 15)), meter_20: unwrap(u:get(grown, 20)), old_snapshot_size: restored.size}

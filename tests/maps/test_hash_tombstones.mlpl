@@ -1,0 +1,32 @@
+include "src/maps/meter_tombstone_reuse.mlpl";
+
+@test {name: "contract", tags: ["migration", "maps"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  one = u:insert(u:new_map(5), 0, 10)?; two = u:insert(one, 5, 20)?; three = u:insert(two, 10, 30)?; wrapped = u:insert(three, 15, 40)?;
+  removed = u:remove(wrapped, 5)?;
+  u:assert_eq(u:lookup(removed, 10)?, 30, "tombstone broke collision chain")?;
+  u:assert_eq(u:lookup(removed, 15)?, 40, "tombstone broke wraparound lookup")?;
+  u:assert_err(u:lookup(removed, 5), "removed key should miss")?;
+  u:assert_err(u:remove(removed, 5), "duplicate remove should miss")?;
+  u:assert_eq(removed.size, 3, "remove size failed")?;
+  reused = u:insert(removed, 20, 50)?;
+  u:assert_eq(take(reused.states, 0, 3), 1, "first tombstone was not reused")?;
+  u:assert_eq(take(reused.keys, 0, 3), 20, "reused slot has wrong key")?;
+  u:assert_eq(u:lookup(reused, 20)?, 50, "reused key lookup failed")?;
+  updated = u:insert(reused, 10, 35)?;
+  u:assert_eq(updated.size, 4, "duplicate update changed size")?;
+  u:assert_eq(u:lookup(updated, 10)?, 35, "duplicate update failed")?;
+  zero = u:insert(updated, -1, 0)?;
+  u:assert_eq(u:lookup(zero, -1)?, 0, "negative stored zero failed")?;
+  u:assert_err(u:insert(zero, 99, 1), "occupied full table should fail")?;
+  deleted_full = u:remove(zero, 0)?;
+  u:assert_err(u:lookup(deleted_full, 777), "tombstoned full-table miss should terminate")?;
+  refilled = u:insert(deleted_full, 25, 60)?;
+  u:assert_eq(refilled.size, 5, "tombstoned full table did not refill")?;
+  u:assert_eq(u:lookup(three, 5)?, 20, "later deletion changed retained version")?;
+  u:assert_err(u:remove(refilled, 1.5), "fractional remove should fail")?;
+  u:assert_true(u:valid(refilled), "final invariant failed")?;
+  ok({test: "hash-map-tombstones", cases: 17})
+}
+
+u:run_registered_tests()

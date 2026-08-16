@@ -1,0 +1,25 @@
+# Mini-app: remove a colliding meter without breaking later lookups.
+#
+# State 0 is empty, 1 occupied, and 2 a tombstone. Lookup crosses tombstones;
+# insertion remembers and reuses the first tombstone in its probe sequence.
+#
+# data_structure: fixed-capacity open-address hash map with tombstones
+# algorithm: recursive linear probing, delete, and tombstone reuse
+# dynamic_size: yes (entry count changes within fixed capacity)
+# logical_complexity: expected O(1), worst-case O(capacity)
+# current_copy_complexity: each pure scatter copies O(capacity) arrays
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# tradeoff: deletion preserves chains, but accumulated tombstones lengthen probes
+
+include "../../src/maps/meter_tombstone_reuse.mlpl";
+
+one = unwrap(u:insert(u:new_map(5), 0, 100));
+two = unwrap(u:insert(one, 5, 200));
+three = unwrap(u:insert(two, 10, 300));
+removed = unwrap(u:remove(three, 5));
+reused = unwrap(u:insert(removed, 15, 400));
+print("Problem: remove colliding meter 5 without losing meter 10, then reuse its slot.");
+print("Solution: tombstones preserve the probe chain and are preferred by later insertion.");
+{meter_10_after_delete: unwrap(u:lookup(removed, 10)), reused_slot_states: reused.states, reused_slot_keys: reused.keys, retained_meter_5: unwrap(u:lookup(three, 5))}

@@ -1,0 +1,32 @@
+# Mini-app: dispatch incident-response jobs by lowest numeric urgency value.
+#
+# Incidents arrive out of priority order. A priority queue delegates storage to
+# an immutable dense binary min-heap, whose recursive sift-up and sift-down
+# keep the most urgent incident at index zero.
+#
+# data_structure: dense binary min-heap and priority queue
+# algorithm: recursive sift-up, sift-down, insert, and remove-min
+# dynamic_size: yes
+# logical_complexity: enqueue/dequeue O(log n), peek O(1)
+# current_copy_complexity: each immutable scatter/concat/compress may copy O(n)
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: persistent vector or scoped builder/transient storage
+
+include "../../src/heaps/priority_queue.mlpl";
+
+queue0 = u:empty_heap();
+queue1 = u:insert(queue0, 5, 801);
+queue2 = u:insert(queue1, 1, 802);
+queue3 = u:insert(queue2, 3, 803);
+queue4 = u:insert(queue3, 2, 804);
+first = unwrap(u:remove_min(queue4));
+second = unwrap(u:remove_min(first.heap));
+third = unwrap(u:remove_min(second.heap));
+
+print("Problem: dispatch incidents by urgency even though they arrive out of priority order.");
+print("Arrival job IDs with priorities 5, 1, 3, 2:");
+print([801, 802, 803, 804]);
+print("Solution: the delegated min-heap returns the three most urgent jobs first.");
+{dispatched_job_ids: [first.id, second.id, third.id], dispatched_priorities: [first.priority, second.priority, third.priority], still_waiting: third.heap.ids}

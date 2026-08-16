@@ -1,0 +1,19 @@
+def u:new_set(capacity) { "Create an empty set value."; {bits: fill([capacity], 0), capacity: capacity} }
+def u:valid_key(set, key) { "Check whether set, key satisfies the valid key invariant.";
+  if eq(rank(key), 0) { if eq(key, floor(key)) { if lt(key, 0) { 0 } else { lt(key, set.capacity) } } else { 0 } } else { 0 }
+}
+def u:put(set, key, bit) { "Add the supplied item and return the updated structure.";
+  if u:valid_key(set, key) { ok({bits: scatter(set.bits, key, bit), capacity: set.capacity}) } else { err({kind: "key", message: "invalid key"}) }
+}
+def u:add(set, key) { "Add the supplied item and return the updated structure."; u:put(set, key, 1) }
+def u:clear(set, key) { "Remove the supplied item and return the updated structure."; u:put(set, key, 0) }
+def u:contains(set, key) { "Return whether set, key satisfy contains.";
+  if u:valid_key(set, key) { ok(take(set.bits, 0, key)) } else { err({kind: "key", message: "invalid key"}) }
+}
+def u:valid_bits(bits, index) { "Check whether bits, index satisfies the valid bits invariant.";
+  if eq(index, tally(bits)) { 1 } else {
+    bit = take(bits, 0, index);
+    (eq(bit, 0) + eq(bit, 1)) * u:valid_bits(bits, index + 1)
+  }
+}
+def u:valid(set) { "Check whether set satisfies the valid invariant."; eq(set.capacity, tally(set.bits)) * u:valid_bits(set.bits, 0) }

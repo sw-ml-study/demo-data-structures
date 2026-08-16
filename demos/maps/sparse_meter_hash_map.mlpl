@@ -1,0 +1,29 @@
+# Mini-app: store readings for sparse numeric meter IDs.
+#
+# Meter IDs do not fit a small direct-address universe. A fixed-capacity hash
+# map uses deterministic mixing plus recursive linear probing. IDs 0, 5, and 10
+# intentionally collide in a five-slot table, demonstrating collision-chain
+# lookup and duplicate-key update.
+#
+# data_structure: fixed-capacity open-address numeric hash map
+# algorithm: deterministic hashing and recursive linear probing
+# dynamic_size: yes (entries grow within fixed capacity)
+# logical_complexity: expected O(1), worst-case O(capacity) lookup/insert
+# current_copy_complexity: each pure scatter update copies O(capacity) arrays
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# next_features: tombstone deletion, load-factor resize, rehash
+
+include "../../src/maps/sparse_meter_hash_map.mlpl";
+
+empty = u:new_map(5);
+one = unwrap(u:insert(empty, 0, 120));
+two = unwrap(u:insert(one, 5, 240));
+three = unwrap(u:insert(two, 10, 360));
+updated = unwrap(u:insert(three, 5, 255));
+reading = unwrap(u:lookup(updated, 10));
+
+print("Problem: store sparse meter readings whose IDs collide in a five-slot table.");
+print("Solution: deterministic hashing plus linear probing retains every colliding key.");
+{meter_10_reading: reading, updated_meter_5: unwrap(u:lookup(updated, 5)), occupied_keys: updated.keys, retained_old_meter_5: unwrap(u:lookup(three, 5))}

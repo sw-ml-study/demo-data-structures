@@ -1,0 +1,24 @@
+# Mini-app: maintain a collision-heavy registry of numeric sensor readings.
+#
+# Bucket heads and parallel node arrays form immutable singly linked chains.
+# Removing a node rewires one handle; growth recursively reinserts live nodes
+# into a larger bucket vector and drops unreachable storage.
+#
+# data_structure: separate-chaining hash map with indexed nodes
+# algorithm: chain lookup, immutable link rewiring, load-driven rehash
+# representation: bucket heads plus key/value/next/active node arrays, -1 null
+# dynamic_size: yes
+# logical_complexity: expected O(1) lookup/update; O(n) resize
+# current_copy_complexity: append/scatter copy arrays; rehash copies repeatedly
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+
+include "../../src/maps/chained_sensor_registry.mlpl";
+
+morning = u:put(u:put(u:put(u:new_map(3), 0, 120), 3, 0), 6, 360);
+without_three = unwrap(u:remove(morning, 3));
+current = u:put(u:put(without_three, -3, 480), 9, 900);
+print("Problem: retain colliding sensor readings while removing sensor 3 and growing the registry.");
+print("Solution: indexed bucket chains isolate collisions; rehash preserves only live nodes.");
+{capacity: current.capacity, sensor_0: unwrap(u:get(current, 0)), sensor_6: unwrap(u:get(current, 6)), sensor_negative_3: unwrap(u:get(current, -3)), sensor_9: unwrap(u:get(current, 9)), retained_sensor_3_zero: unwrap(u:get(morning, 3)), live_entries: current.size}

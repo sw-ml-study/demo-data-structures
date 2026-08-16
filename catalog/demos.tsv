@@ -8,3 +8,12 @@ linked-list-editable-route	demos/linked_lists/editable_delivery_route.mlpl	index
 linked-list-ordered-directory	demos/linked_lists/ordered_directory.mlpl	indexed-four-level-skip-list	deterministic-insert-lookup-delete-traverse	yes	0	0	current	constrained
 persistent-list-alert-feed	demos/persistent_lists/alert_feed.mlpl	persistent-cons-list	prepend-and-recursive-traverse	yes	0	0	current	constrained
 persistent-list-expiring-alerts	demos/persistent_lists/expiring_alert_feed.mlpl	persistent-cons-list	recursive-stable-cutoff-filter	yes	0	0	current	constrained
+heap-incident-priority-queue	demos/heaps/incident_priority_queue.mlpl	binary-min-heap	priority-queue-scheduling	yes	0	0	current	constrained
+set-feature-flags	demos/sets/feature_flag_bit_set.mlpl	bounded-bit-set	set-clear-membership	no	0	0	current	constrained
+map-warehouse-direct	demos/maps/warehouse_direct_map.mlpl	direct-address-map	insert-update-lookup-remove	no	0	0	current	constrained
+hash-device-workers	demos/hashing/device_worker_assignment.mlpl	numeric-bucket-table	deterministic-integer-mixing	no	0	0	current	constrained
+map-sparse-meter-hash	demos/maps/sparse_meter_hash_map.mlpl	open-address-hash-map	linear-probe-insert-lookup	yes	0	0	current	constrained
+map-meter-tombstones	demos/maps/meter_tombstone_reuse.mlpl	open-address-hash-map	delete-and-tombstone-reuse	yes	0	0	current	constrained
+map-growing-meter-hash	demos/maps/growing_meter_hash_map.mlpl	resizable-open-address-map	load-factor-resize-rehash	yes	0	0	current	constrained
+map-chained-sensor-registry	demos/maps/chained_sensor_registry.mlpl	separate-chaining-hash-map	indexed-chain-insert-delete-resize	yes	0	0	current	constrained
+cache-recent-routes	demos/caches/recent_route_cache.mlpl	numeric-lru-cache	lookup-promote-evict	yes	0	0	current	constrained

@@ -11,3 +11,12 @@ linked-list-doubly-route	tests/linked_lists/test_indexed_doubly_linked_route.mlp
 linked-list-skip-directory	tests/linked_lists/test_indexed_skip_list.mlpl	indexed-four-level-skip-list	deterministic-insert-lookup-delete-traverse-validate	yes	0	0	current	constrained
 persistent-list-alert-feed	tests/persistent_lists/test_alert_feed.mlpl	persistent-cons-list	prepend-and-recursive-traverse	yes	0	0	current	constrained
 persistent-list-expiry-removal	tests/persistent_lists/test_alert_feed_expiry.mlpl	persistent-cons-list	pop-drop-remove-and-filter	yes	0	0	current	constrained
+heap-priority-queue	tests/heaps/test_priority_queue.mlpl	binary-min-heap	insert-remove-min	yes	0	0	current	constrained
+set-bit	tests/sets/test_bit_set.mlpl	bounded-bit-set	set-clear-membership	no	0	0	current	constrained
+map-direct-address	tests/maps/test_direct_address_map.mlpl	direct-address-map	insert-update-lookup-remove	no	0	0	current	constrained
+hash-numeric-mixing	tests/hashing/test_numeric_hash.mlpl	numeric-bucket-table	deterministic-integer-mixing	no	0	0	current	constrained
+map-open-address	tests/maps/test_open_address_map.mlpl	open-address-hash-map	linear-probe-insert-lookup	yes	0	0	current	constrained
+map-hash-tombstones	tests/maps/test_hash_tombstones.mlpl	open-address-hash-map	delete-and-tombstone-reuse	yes	0	0	current	constrained
+map-hash-resize	tests/maps/test_hash_resize.mlpl	resizable-open-address-map	load-factor-resize-rehash	yes	0	0	current	constrained
+map-separate-chaining	tests/maps/test_separate_chaining.mlpl	separate-chaining-hash-map	indexed-chain-insert-delete-resize	yes	0	0	current	constrained
+cache-numeric-lru	tests/caches/test_numeric_lru.mlpl	numeric-lru-cache	lookup-promote-evict	yes	0	0	current	constrained

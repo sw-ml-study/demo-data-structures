@@ -1,0 +1,26 @@
+# Mini-app: track enabled numeric feature flags in a bounded deployment.
+#
+# Flag IDs are integers from 0 through 15. A bit-set-style mask provides
+# constant-time membership and pure enable/disable updates without storing
+# duplicate IDs.
+#
+# data_structure: bounded numeric bit set
+# algorithm: membership, set, and clear by direct mask index
+# dynamic_size: no (fixed 16-flag universe)
+# logical_complexity: membership/set/clear O(1)
+# current_copy_complexity: scatter copies O(universe size) mask storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# tradeoff: excellent for small dense bounded keys; space grows with universe
+
+include "../../src/sets/feature_flag_bit_set.mlpl";
+
+baseline = u:new_set(16);
+rollout1 = unwrap(u:add(baseline, 3));
+rollout2 = unwrap(u:add(rollout1, 9));
+current = unwrap(u:clear(rollout2, 3));
+
+print("Problem: enable flag 9 and retire flag 3 while retaining the earlier rollout.");
+print("Solution: direct mask updates provide bounded numeric set membership.");
+{flag_3_now: unwrap(u:contains(current, 3)), flag_9_now: unwrap(u:contains(current, 9)), prior_rollout_flag_3: unwrap(u:contains(rollout2, 3)), current_mask: current.bits}

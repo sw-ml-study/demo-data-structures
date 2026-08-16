@@ -1,0 +1,34 @@
+# Mini-app: deterministically assign numeric device IDs to worker buckets.
+#
+# A small integer mixer normalizes signed IDs, applies fixed arithmetic, and
+# reduces the result into seven buckets. The same ID always reaches the same
+# worker, while collisions are expected and will be handled by the next
+# open-addressing demo.
+#
+# data_structure: numeric vector and bounded bucket table
+# algorithm: signed normalization, integer mixing, modulo bucket reduction
+# dynamic_size: no
+# logical_complexity: O(1) per key, O(n) recursive batch assignment
+# current_copy_complexity: result construction by concat may copy O(n^2)
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# constraints: integral keys with abs(key) <= 1,000,000; positive integral capacity
+# warning: deterministic pedagogical mixer, not cryptographic or adversary-resistant
+
+include "../../src/hashing/device_worker_assignment.mlpl";
+
+def u:assign(keys, capacity, index, buckets) { "Return the assign result for the supplied keys, capacity, index, buckets.";
+  if eq(index, tally(keys)) { buckets } else {
+    hashed = u:hash_bucket(take(keys, 0, index), capacity)?;
+    u:assign(keys, capacity, index + 1, concat(buckets, hashed.bucket))
+  }
+}
+
+device_ids = [101, 142, 205, 319, 408];
+worker_buckets = u:assign(device_ids, 7, 0, fill([0], 0));
+print("Problem: assign device IDs reproducibly across seven worker buckets.");
+print("Device IDs:");
+print(device_ids);
+print("Solution: fixed signed normalization and mixing produces deterministic buckets.");
+{device_ids: device_ids, worker_buckets: worker_buckets, collision_example: [142, 205]}

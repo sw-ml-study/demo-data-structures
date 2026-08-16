@@ -1,0 +1,24 @@
+def u:new_map(capacity) { "Create an empty map value."; {values: fill([capacity], 0), present: fill([capacity], 0), capacity: capacity, size: 0} }
+def u:valid_key(map, key) { "Check whether map, key satisfies the valid key invariant.";
+  if eq(rank(key), 0) { if eq(key, floor(key)) { if lt(key, 0) { 0 } else { lt(key, map.capacity) } } else { 0 } } else { 0 }
+}
+def u:insert(map, key, value) { "Add the supplied item and return the updated structure.";
+  if u:valid_key(map, key) {
+    old = take(map.present, 0, key);
+    ok({values: scatter(map.values, key, value), present: scatter(map.present, key, 1), capacity: map.capacity, size: map.size + (1 - old)})
+  } else { err({kind: "key", message: "invalid key"}) }
+}
+def u:lookup(map, key) { "Find the requested value or node in the supplied structure.";
+  if u:valid_key(map, key) { if take(map.present, 0, key) { ok(take(map.values, 0, key)) } else { err({kind: "missing", message: "absent"}) } } else { err({kind: "key", message: "invalid key"}) }
+}
+def u:remove(map, key) { "Remove the supplied item and return the updated structure.";
+  if u:valid_key(map, key) {
+    if take(map.present, 0, key) { ok({values: scatter(map.values, key, 0), present: scatter(map.present, key, 0), capacity: map.capacity, size: map.size - 1}) } else { err({kind: "missing", message: "absent"}) }
+  } else { err({kind: "key", message: "invalid key"}) }
+}
+def u:count(present, index) { "Return the count result for the supplied present, index.";
+  if eq(index, tally(present)) { 0 } else { take(present, 0, index) + u:count(present, index + 1) }
+}
+def u:valid(map) { "Check whether map satisfies the valid invariant.";
+  eq(map.capacity, tally(map.values)) * eq(map.capacity, tally(map.present)) * eq(map.size, u:count(map.present, 0))
+}

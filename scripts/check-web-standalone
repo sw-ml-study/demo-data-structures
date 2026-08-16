@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+[ -d "$repo_root/web" ] || { echo "Web standalone audit passed: no web directory."; exit 0; }
+
+bad=$(find "$repo_root/web" -type f -name '*.mlpl' -exec grep -l '^[[:space:]]*include[[:space:]]' {} + || true)
+if [ -n "$bad" ]; then
+  echo "web MLPL files must be standalone; include is unsupported by Editor > Load > Run:" >&2
+  echo "$bad" >&2
+  exit 1
+fi
+
+echo "Web standalone audit passed."

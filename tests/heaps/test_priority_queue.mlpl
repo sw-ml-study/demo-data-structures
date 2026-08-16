@@ -1,0 +1,31 @@
+
+
+include "src/heaps/priority_queue.mlpl";
+
+@test {name: "priority queue contract", tags: ["priority", "unit", "native"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  empty = u:empty_heap();
+  u:assert_true(u:valid(empty), "empty heap invariant failed")?;
+  u:assert_err(u:remove_min(empty), "empty removal should fail")?;
+  one = u:insert(empty, 7, 100);
+  u:assert_eq(one.size, 1, "singleton insertion did not grow")?;
+  singleton = u:remove_min(one)?;
+  u:assert_eq(singleton.priority, 7, "singleton removal priority failed")?;
+  u:assert_eq(singleton.id, 100, "singleton removal payload failed")?;
+  u:assert_eq(singleton.heap.size, 0, "singleton removal did not shrink")?;
+
+  two = u:insert(one, 3, 200);
+  many = u:insert(u:insert(u:insert(u:insert(two, 9, 300), -2, 400), 3, 500), 0, 600);
+  u:assert_true(u:valid(many), "grown heap invariant failed")?;
+  u:assert_eq(take(many.priorities, 0, 0), -2, "peek should expose minimum")?;
+  u:assert_eq(u:drain(many, fill([0], 0)), [-2, 0, 3, 3, 7, 9], "remove-min order failed")?;
+
+  first = u:remove_min(many)?;
+  u:assert_true(u:valid(first.heap), "shrunken heap invariant failed")?;
+  u:assert_eq(many.size, 6, "remove changed retained heap version")?;
+  u:assert_eq(one.priorities, [7], "later insertions changed singleton version")?;
+  ok({test: "binary-heap-priority-queue", cases: 12})
+}
+
+
+u:run_registered_tests()

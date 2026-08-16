@@ -1,0 +1,36 @@
+def u:new_map(c) { "Create an empty map value."; {states: fill([c], 0), keys: fill([c], 0), values: fill([c], 0), capacity: c, size: 0} }
+def u:norm(k) { "Return the norm result for the supplied k."; if lt(k, 0) { 0 - k * 2 - 1 } else { k * 2 } }
+def u:rem(v, d) { "Return the rem result for the supplied v, d."; v - floor(v / d) * d }
+def u:bucket(k, c) { "Return the bucket result for the supplied k, c."; u:rem(u:norm(k) * 37 + 17, c) }
+def u:find_insert(map, key, probe, first_deleted) { "Find insert in the supplied structure.";
+  if eq(probe, map.capacity) { if gt(first_deleted, -1) { ok({index: first_deleted, found: 0}) } else { err({kind: "full", message: "full"}) } } else {
+    index = u:rem(u:bucket(key, map.capacity) + probe, map.capacity); state = take(map.states, 0, index);
+    if eq(state, 0) { if gt(first_deleted, -1) { ok({index: first_deleted, found: 0}) } else { ok({index: index, found: 0}) } } else {
+      if eq(state, 1) * eq(take(map.keys, 0, index), key) { ok({index: index, found: 1}) } else {
+        remembered = if eq(state, 2) * eq(first_deleted, -1) { index } else { first_deleted };
+        u:find_insert(map, key, probe + 1, remembered)
+      }
+    }
+  }
+}
+def u:raw_insert(m, k, v) { "Return the raw insert result for the supplied m, k, v."; x = u:find_insert(m, k, 0, -1)?; ok({states: scatter(m.states, x.index, 1), keys: scatter(m.keys, x.index, k), values: scatter(m.values, x.index, v), capacity: m.capacity, size: m.size + (1 - x.found)}) }
+def u:rehash(old, position, fresh) { "Return the rehash result for the supplied old, position, fresh.";
+  if eq(position, old.capacity) { fresh } else {
+    if eq(take(old.states, 0, position), 1) { u:rehash(old, position + 1, unwrap(u:raw_insert(fresh, take(old.keys, 0, position), take(old.values, 0, position)))) } else { u:rehash(old, position + 1, fresh) }
+  }
+}
+def u:put(m, k, v) { "Add the supplied item and return the updated structure.";
+  x = u:find_insert(m, k, 0, -1)?;
+  if x.found { ok({states: m.states, keys: m.keys, values: scatter(m.values, x.index, v), capacity: m.capacity, size: m.size}) } else {
+    if gt((m.size + 1) * 4, m.capacity * 3) {
+      u:raw_insert(u:rehash(m, 0, u:new_map(m.capacity * 2 + 1)), k, v)
+    } else {
+      u:raw_insert(m, k, v)
+    }
+  }
+}
+def u:find_key(m, k, p) { "Find key in the supplied structure."; if eq(p, m.capacity) { err({kind: "missing", message: "absent"}) } else { i = u:rem(u:bucket(k, m.capacity) + p, m.capacity); s = take(m.states, 0, i); if eq(s, 0) { err({kind: "missing", message: "absent"}) } else { if eq(s, 1) * eq(take(m.keys, 0, i), k) { ok(i) } else { u:find_key(m, k, p + 1) } } } }
+def u:get(m, k) { "Find the requested value or node in the supplied structure."; ok(take(m.values, 0, u:find_key(m, k, 0)?)) }
+def u:remove(m, k) { "Remove the supplied item and return the updated structure."; i = u:find_key(m, k, 0)?; ok({states: scatter(m.states, i, 2), keys: m.keys, values: m.values, capacity: m.capacity, size: m.size - 1}) }
+def u:count(states, wanted, i) { "Return the count result for the supplied states, wanted, i."; if eq(i, tally(states)) { 0 } else { eq(take(states, 0, i), wanted) + u:count(states, wanted, i + 1) } }
+def u:valid(m) { "Check whether m satisfies the valid invariant."; eq(m.size, u:count(m.states, 1, 0)) * eq(m.capacity, tally(m.states)) * eq(m.capacity, tally(m.keys)) * eq(m.capacity, tally(m.values)) }
