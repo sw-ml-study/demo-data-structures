@@ -1,0 +1,35 @@
+# Mini-app: insert an urgent stop into a delivery route.
+#
+# Route 101 -> 202 -> 303 is already scheduled when urgent stop 250 must be
+# inserted after stop 202. An index-backed singly linked list fits because the
+# logical order changes by appending one node and rewiring one next handle; the
+# existing physical node values do not shift.
+#
+# data_structure: index-backed singly linked list
+# algorithm: find target, insert-after, traverse
+# representation: parallel values/next arrays, head index, -1 null handle
+# dynamic_size: yes
+# logical_complexity: find O(n), insert after known node O(1), traversal O(n)
+# current_copy_complexity: array append/scatter copy O(n) storage
+# explicit_loops: 3
+# target_loops: 0 with UDF-capable find/fold/unfold
+# required_features: current
+
+include "../../src/linked_lists/delivery_route.mlpl";
+
+delivery_list = {values: [101, 202, 303], next: [1, 2, 0 - 1], head: 0, size: 3};
+
+print("Problem: insert urgent stop 250 after stop 202 in route 101 -> 202 -> 303.");
+print("Physical node values before insertion:");
+print(delivery_list.values);
+
+updated = unwrap(u:insert_after(delivery_list, 202, 250));
+logical_route = unwrap(u:traverse(updated));
+
+print("Solution: only one next handle is rewired; existing values do not shift.");
+{
+  logical_route: logical_route,
+  physical_values: updated.values,
+  next_handles: updated.next,
+  inserted_node_index: updated.size - 1
+}

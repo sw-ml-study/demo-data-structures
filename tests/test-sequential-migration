@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+demo_count=$(awk -F '\t' 'NR > 1 && $2 ~ /^demos\/(vectors|stacks|queues|deques|linked_lists|persistent_lists)\// { count++ } END { print count + 0 }' "$repo_root/catalog/demos.tsv")
+test_count=$(awk -F '\t' 'NR > 1 && $2 ~ /^tests\/(vectors|stacks|queues|deques|linked_lists|persistent_lists)\// { count++ } END { print count + 0 }' "$repo_root/catalog/tests.tsv")
+
+[ "$demo_count" -eq 9 ] || { echo "expected 9 sequential demos, found $demo_count" >&2; exit 1; }
+[ "$test_count" -eq 12 ] || { echo "expected 12 sequential tests, found $test_count" >&2; exit 1; }
+
+for kind in demos tests; do
+  awk -F '\t' 'NR > 1 && $2 ~ /\/(vectors|stacks|queues|deques|linked_lists|persistent_lists)\// { print $2 }' "$repo_root/catalog/$kind.tsv" |
+  while IFS= read -r path; do
+    [ -f "$repo_root/$path" ] || { echo "missing migrated file: $path" >&2; exit 1; }
+    if grep -q '^include ' "$repo_root/$path"; then
+      included=$(sed -n 's/^include "\([^"]*\)";.*/\1/p' "$repo_root/$path" | head -n 1)
+      case "$kind:$included" in
+        demos:../../src/*|tests:src/*) ;;
+        *) echo "$path has an unexpected shared-source include: $included" >&2; exit 1 ;;
+      esac
+    fi
+  done
+done
+
+if [ -d "$repo_root/web" ] && find "$repo_root/web" -type f -name '*.mlpl' -exec grep -l '^include ' {} + | grep -q .; then
+  echo "web MLPL files must be standalone and cannot use include" >&2
+  exit 1
+fi
+
+echo "Sequential migration contract passed."

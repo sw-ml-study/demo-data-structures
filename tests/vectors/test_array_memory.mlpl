@@ -1,0 +1,47 @@
+# Vector algorithm: pure random-access memory
+#
+# data_structure: numeric vector
+# algorithm: bounds-safe read, functional write, and swap
+# dynamic_size: no (the next growable-vector demo adds resizing)
+# representation: rank-1 dense numeric array
+# invariant: every public operation accepts a rank-1 vector and integral index
+# logical_complexity: read O(1), write O(1), swap O(1)
+# current_copy_complexity: write/swap may copy O(n) array storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: general pure put plus checked integer index type
+
+include "src/vectors/array_memory.mlpl";
+
+@test {name: "vector array memory contract", tags: ["vector", "unit", "native"]}
+def u:test_contract() { "Run this standalone example and return its result.";
+  original = [10, 20, 30, 40];
+
+  first = u:read_at(original, 0)?;
+  last = u:read_at(original, 3)?;
+  u:assert_eq(first, 10, "boundary read at index zero failed")?;
+  u:assert_eq(last, 40, "boundary read at final index failed")?;
+
+  written = u:write_at(original, 1, 99)?;
+  u:assert_eq(written, [10, 99, 30, 40], "functional write failed")?;
+  u:assert_eq(original, [10, 20, 30, 40], "write changed original value")?;
+
+  swapped = u:swap_at(original, 0, 3)?;
+  u:assert_eq(swapped, [40, 20, 30, 10], "swap failed")?;
+  u:assert_eq(original, [10, 20, 30, 40], "swap changed original value")?;
+
+  empty = fill([0], 0);
+  u:assert_err(u:read_at(empty, 0), "empty vector read should fail")?;
+  u:assert_err(u:write_at(empty, 0, 7), "empty vector write should fail")?;
+  u:assert_err(u:read_at(original, 4), "past-end read should fail")?;
+  u:assert_err(u:read_at(original, 0 - 1), "negative read should fail")?;
+  u:assert_err(u:read_at(original, 1.5), "fractional index should fail")?;
+  u:assert_err(u:read_at([[1, 2], [3, 4]], 0), "non-vector read should fail")?;
+  u:assert_err(u:swap_at(original, 0, 4), "invalid swap should fail")?;
+
+  ok({algorithm: "array-memory", size: tally(original), reads: 2, writes: 1, swaps: 1})
+}
+
+
+u:run_registered_tests()

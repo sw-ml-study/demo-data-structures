@@ -1,0 +1,60 @@
+# Vector algorithm: immutable dynamic append and pop
+#
+# data_structure: growable numeric vector
+# algorithm: append and remove-last over a pure record API
+# dynamic_size: yes
+# representation: {data: rank-1 numeric array, size: integral scalar}
+# invariant: rank(data) = 1 and size = tally(data)
+# logical_complexity: append O(1) amortized target, pop O(1) target
+# current_copy_complexity: append and pop copy O(n) numeric storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: copy-on-write/persistent vector storage and record update
+
+include "src/vectors/growable_vector.mlpl";
+
+@test {name: "growable vector contract", tags: ["growable", "unit", "native"]}
+def u:test_contract() { "Run this standalone example and return its result.";
+  empty = u:new_vector();
+  u:assert_true(u:valid(empty), "new vector invariant failed")?;
+  u:assert_err(u:pop(empty), "empty pop should fail")?;
+
+  one = u:append(empty, 10)?;
+  two = u:append(one, 20)?;
+  three = u:append(two, 30)?;
+  four = u:append(three, 40)?;
+
+  u:assert_eq(four.size, 4, "append did not grow logical size")?;
+  u:assert_eq(four.data, [10, 20, 30, 40], "append produced wrong data")?;
+  u:assert_true(u:valid(four), "grown vector invariant failed")?;
+
+  u:assert_eq(empty.size, 0, "append changed empty version")?;
+  u:assert_eq(one.data, [10], "later append changed one-element version")?;
+  u:assert_eq(two.data, [10, 20], "later append changed two-element version")?;
+
+  popped = u:pop(four)?;
+  shorter = popped.vector;
+  u:assert_eq(popped.value, 40, "pop returned wrong value")?;
+  u:assert_eq(shorter.size, 3, "pop did not shrink logical size")?;
+  u:assert_eq(shorter.data, [10, 20, 30], "pop retained wrong data")?;
+  u:assert_true(u:valid(shorter), "shrunk vector invariant failed")?;
+  u:assert_eq(four.data, [10, 20, 30, 40], "pop changed prior version")?;
+
+  singleton = u:from_array([7])?;
+  last = u:pop(singleton)?;
+  u:assert_eq(last.value, 7, "singleton pop returned wrong value")?;
+  u:assert_eq(last.vector.size, 0, "singleton pop should produce empty vector")?;
+  u:assert_eq(tally(last.vector.data), 0, "singleton pop retained storage")?;
+
+  malformed = {data: [1, 2], size: 3};
+  u:assert_err(u:append(malformed, 4), "append should reject invalid representation")?;
+  u:assert_err(u:pop(malformed), "pop should reject invalid representation")?;
+  u:assert_err(u:from_array([[1, 2]]), "constructor should reject non-vector data")?;
+  u:assert_err(u:append(empty, [1, 2]), "append should reject non-scalar value")?;
+
+  ok({algorithm: "growable-vector", final_size: shorter.size, appended: 4, popped: 1})
+}
+
+
+u:run_registered_tests()

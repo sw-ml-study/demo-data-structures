@@ -1,0 +1,57 @@
+# Shared production definitions for browser stack.
+
+def u:new_stack() { "Create an empty stack value.";
+  {data: fill([0], 0), size: 0}
+}
+
+def u:valid(stack) { "Check whether stack satisfies the valid invariant.";
+  if eq(rank(stack.data), 1) {
+    if eq(stack.size, floor(stack.size)) {
+      if lt(stack.size, 0) { 0 } else { eq(stack.size, tally(stack.data)) }
+    } else { 0 }
+  } else { 0 }
+}
+
+def u:push(stack, value) { "Add the supplied item and return the updated structure.";
+  if u:valid(stack) {
+    if eq(rank(value), 0) {
+      ok({data: concat(stack.data, value), size: stack.size + 1})
+    } else {
+      err({kind: "value", message: "stack values must be numeric scalars"})
+    }
+  } else {
+    err({kind: "representation", message: "invalid stack"})
+  }
+}
+
+def u:pop(stack) { "Remove the next item and return the resulting structure.";
+  if u:valid(stack) {
+    if eq(stack.size, 0) {
+      err({kind: "empty-stack", message: "cannot pop an empty stack"})
+    } else {
+      top_index = stack.size - 1;
+      value = take(stack.data, 0, top_index);
+      keep = lt(range(stack.size), top_index);
+      ok({stack: {data: compress(keep, stack.data), size: top_index}, value: value})
+    }
+  } else {
+    err({kind: "representation", message: "invalid stack"})
+  }
+}
+
+def u:new_session(home_page) { "Create an empty session value.";
+  {current_page: home_page, back_stack: u:new_stack()}
+}
+
+def u:visit(session, next_page) { "Traverse the supplied structure in visit order.";
+  pushed = u:push(session.back_stack, session.current_page)?;
+  ok({
+    current_page: next_page,
+    back_stack: pushed
+  })
+}
+
+def u:go_back(session) { "Return the go back result for the supplied session.";
+  previous = u:pop(session.back_stack)?;
+  ok({current_page: previous.value, back_stack: previous.stack})
+}

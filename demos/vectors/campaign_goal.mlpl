@@ -1,0 +1,30 @@
+# Mini-app: When did a community campaign reach its fundraising goal?
+#
+# Donations arrive one day at a time, so a growable vector preserves their
+# order while allowing the history to expand. A prefix-sum algorithm converts
+# daily donations into cumulative totals. Filtering the day indices by totals
+# at or above the goal reveals the first day the campaign succeeded.
+#
+# data_structure: growable numeric vector
+# algorithm: prefix sum plus first matching index
+# dynamic_size: yes
+# logical_complexity: O(n)
+# current_copy_complexity: each append copies O(n) storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+
+include "../../src/vectors/campaign_goal.mlpl";
+
+donations = u:new_vector();
+donations = u:append(donations, 120);
+donations = u:append(donations, 75);
+donations = u:append(donations, 210);
+donations = u:append(donations, 95);
+donations = u:append(donations, 160);
+
+print("Problem: find the first day cumulative donations reach the 500 goal.");
+print("Daily donations:");
+print(donations.data);
+print("Solution:");
+unwrap(u:first_goal_day(donations, 500))

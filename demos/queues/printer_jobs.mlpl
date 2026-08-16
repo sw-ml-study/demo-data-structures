@@ -1,0 +1,37 @@
+# Mini-app: schedule shared-printer jobs fairly.
+#
+# Three print jobs arrive in order. A FIFO queue is appropriate because every
+# job is processed in arrival order: the oldest waiting job is always next.
+# Numeric job IDs are used because current sw-MLPL strings are labels rather
+# than general collection elements.
+#
+# data_structure: immutable dynamically sized queue
+# algorithm: enqueue at the tail, dequeue from the head
+# dynamic_size: yes
+# logical_complexity: enqueue/dequeue O(1) target
+# current_copy_complexity: enqueue/dequeue copy O(n) array storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+
+include "../../src/queues/printer_jobs.mlpl";
+
+waiting = u:new_queue();
+waiting = unwrap(u:enqueue(waiting, 501));
+waiting = unwrap(u:enqueue(waiting, 502));
+waiting = unwrap(u:enqueue(waiting, 503));
+
+print("Problem: process shared-printer jobs fairly in their arrival order.");
+print("Waiting job IDs before printing:");
+print(waiting.data);
+
+first = unwrap(u:dequeue(waiting));
+second = unwrap(u:dequeue(first.queue));
+processed = concat(first.value, second.value);
+
+print("Solution: the first two processed jobs preserve FIFO arrival order.");
+{
+  processed_jobs: processed,
+  still_waiting: second.queue.data,
+  next_job: take(second.queue.data, 0, 0)
+}

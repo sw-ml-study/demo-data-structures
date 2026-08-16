@@ -1,0 +1,40 @@
+# Native mlplunit tests for the production deque used by the service-desk demo.
+
+include "src/deques/service_desk.mlpl";
+
+@test {name: "empty deque behavior", tags: ["deque", "unit", "boundary"]}
+def u:test_empty_deque() { "Verify a new deque is valid and both empty removals return errors.";
+  empty = u:new_deque();
+  u:assert_true(u:valid(empty), "new deque invariant")?;
+  u:assert_err(u:pop_front(empty), "empty pop-front")?;
+  u:assert_err(u:pop_back(empty), "empty pop-back")
+}
+
+@test {name: "mixed immutable end operations", tags: ["deque", "unit", "persistence"]}
+def u:test_mixed_ends() { "Verify mixed front/back operations preserve order and retained versions.";
+  empty = u:new_deque();
+  one = u:push_back(empty, 701)?;
+  two = u:push_back(one, 702)?;
+  three = u:push_front(two, 999)?;
+  four = u:push_back(three, 703)?;
+  u:assert_eq(four.data, [999, 701, 702, 703], "mixed insertion order")?;
+  u:assert_eq(four.size, 4, "deque growth")?;
+  front = u:pop_front(four)?;
+  back = u:pop_back(front.deque)?;
+  u:assert_eq([front.value, back.value], [999, 703], "removed end values")?;
+  u:assert_eq(back.deque.data, [701, 702], "retained middle")?;
+  u:assert_eq(empty.size, 0, "empty version retained")?;
+  u:assert_eq(two.data, [701, 702], "prior version retained")?;
+  u:assert_eq(four.data, [999, 701, 702, 703], "pre-pop version retained")
+}
+
+@test {name: "representation and value validation", tags: ["deque", "unit", "invalid"]}
+def u:test_validation() { "Verify malformed deques and nonscalar inserted values are rejected.";
+  empty = u:new_deque();
+  malformed = {data: [1, 2], size: 3};
+  u:assert_err(u:push_front(malformed, 4), "malformed push-front")?;
+  u:assert_err(u:pop_back(malformed), "malformed pop-back")?;
+  u:assert_err(u:push_back(empty, [1, 2]), "nonscalar value")
+}
+
+u:run_registered_tests()

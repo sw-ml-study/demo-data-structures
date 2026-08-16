@@ -1,0 +1,20 @@
+# Mini-app: edit a delivery itinerary from either direction while preserving the dispatch snapshot.
+# data_structure: indexed doubly linked list with append-only numeric-handle arena
+# algorithm: reciprocal-link insertion/deletion plus bounded forward/reverse traversal
+# dynamic_size: yes
+# logical_complexity: O(1) handle-based insert/delete; O(n) traversal and validation
+# current_copy_complexity: each append/scatter copies O(arena size); validation traverses immutable arrays
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current arrays, records, recursion, scatter, concat, and Result values
+# future_improvement: transient/COW builders, record update syntax, modules, and UDF folds
+
+include "../../src/linked_lists/indexed_doubly_linked_route.mlpl";
+
+dispatch = unwrap(u:dll_from_values([101,202,303]));
+urgent = unwrap(u:dll_insert_before(dispatch, 1, 150));
+extended = unwrap(u:dll_insert_tail(urgent.list, 404));
+revised = unwrap(u:dll_delete(extended.list, 1));
+print("Problem: insert urgent stop 150 before stop 202, add stop 404, then cancel 202 while preserving the dispatched route.");
+print("Solution: stable arena handles and reciprocal links support local edits plus forward and reverse itinerary views.");
+{revised_forward: unwrap(u:dll_forward(revised)), revised_reverse: unwrap(u:dll_reverse(revised)), retained_dispatch_route: unwrap(u:dll_forward(dispatch)), canceled_handle_active: take(revised.active, 0, 1), arena_nodes: tally(revised.values)}

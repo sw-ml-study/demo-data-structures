@@ -1,0 +1,35 @@
+# Conformance tests for the persistent immutable alert-feed cons list.
+
+include "src/persistent_lists/alert_feed.mlpl";
+
+@test {name: "persistent alert list contract", tags: ["persistent", "unit", "native"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  empty = u:empty_feed();
+  u:assert_true(u:valid(empty), "empty sentinel should be valid")?;
+  u:assert_eq(u:alert_ids(empty)?, fill([0], 0), "empty traversal should be empty")?;
+
+  one = u:prepend(empty, 101)?;
+  u:assert_eq(u:alert_ids(one)?, [101], "singleton traversal failed")?;
+
+  two = u:prepend(one, 202)?;
+  snapshot = two;
+  four = u:prepend(u:prepend(two, 303)?, 404)?;
+  u:assert_eq(u:alert_ids(four)?, [404, 303, 202, 101], "prepend order is not newest-first")?;
+  u:assert_true(u:valid(four), "multi-node feed should be valid")?;
+
+  u:assert_eq(u:alert_ids(snapshot)?, [202, 101], "later prepends changed retained snapshot")?;
+  u:assert_eq(u:alert_ids(one)?, [101], "later prepends changed singleton version")?;
+  u:assert_true(one.next.empty, "singleton tail should remain the empty sentinel")?;
+
+  bad_marker = {empty: 2};
+  u:assert_err(u:alert_ids(bad_marker), "invalid empty marker should fail")?;
+  malformed_node = {empty: 0, alert_id: [1, 2], next: empty};
+  u:assert_err(u:alert_ids(malformed_node), "non-scalar alert ID should fail")?;
+  u:assert_err(u:prepend(bad_marker, 7), "prepend should reject malformed feed")?;
+  u:assert_err(u:prepend(empty, [7, 8]), "prepend should reject non-scalar ID")?;
+
+  ok({test: "persistent-alert-feed", cases: 12})
+}
+
+
+u:run_registered_tests()

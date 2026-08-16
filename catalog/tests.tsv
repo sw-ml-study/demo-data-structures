@@ -1,1 +1,13 @@
 id	path	data_structure	algorithm	dynamic_size	explicit_loops	target_loops	required_features	status
+vector-array-memory	tests/vectors/test_array_memory.mlpl	vector	bounds-safe-read-write-swap	no	0	0	current	runnable
+vector-growable	tests/vectors/test_growable_vector.mlpl	vector	immutable-append-pop	yes	0	0	current	constrained
+vector-chunked	tests/vectors/test_chunked_vector.mlpl	vector	chunked-append-read	yes	0	0	current	constrained
+vector-campaign-goal	tests/vectors/test_campaign_goal.mlpl	vector	prefix-sum-goal-search	yes	0	0	current	runnable
+stack-browser-back	tests/stacks/test_browser_back_history.mlpl	stack	lifo-push-pop	yes	0	0	current	constrained
+queue-printer-jobs	tests/queues/test_printer_jobs.mlpl	queue	fifo-enqueue-dequeue	yes	0	0	current	constrained
+deque-service-desk	tests/deques/test_service_desk.mlpl	deque	double-ended-operations	yes	0	0	current	constrained
+linked-list-delivery-route	tests/linked_lists/test_delivery_route.mlpl	singly-linked-list	insert-after-and-traverse	yes	3	0	current	constrained
+linked-list-doubly-route	tests/linked_lists/test_indexed_doubly_linked_route.mlpl	indexed-doubly-linked-list	reciprocal-insert-delete-traverse	yes	0	0	current	constrained
+linked-list-skip-directory	tests/linked_lists/test_indexed_skip_list.mlpl	indexed-four-level-skip-list	deterministic-insert-lookup-delete-traverse-validate	yes	0	0	current	constrained
+persistent-list-alert-feed	tests/persistent_lists/test_alert_feed.mlpl	persistent-cons-list	prepend-and-recursive-traverse	yes	0	0	current	constrained
+persistent-list-expiry-removal	tests/persistent_lists/test_alert_feed_expiry.mlpl	persistent-cons-list	pop-drop-remove-and-filter	yes	0	0	current	constrained

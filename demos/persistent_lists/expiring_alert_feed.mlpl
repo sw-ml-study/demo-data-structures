@@ -1,0 +1,33 @@
+# Mini-app: expire acknowledged/old alert IDs from an immutable alert feed.
+#
+# A dashboard has an audit snapshot containing both current and expired numeric
+# alert IDs. Its display must hide IDs below the current retention watermark,
+# while the audit process continues to see the original snapshot. Recursive
+# filtering constructs a revised immutable feed in the same order.
+#
+# data_structure: persistent immutable cons list
+# algorithm: recursive stable cutoff filter
+# representation: empty sentinel {empty: 1}; node {empty: 0, alert_id, next}
+# dynamic_size: yes (filtering can shrink to any size)
+# logical_complexity: filter O(n), traversal O(n)
+# current_copy_complexity: O(n) nested records; structural tail sharing is not guaranteed
+# explicit_loops: 0 (recursive construction and traversal)
+# target_loops: 0
+# required_features: current
+# future_improvement: runtime persistent values with guaranteed structural sharing
+
+include "../../src/persistent_lists/alert_feed.mlpl";
+
+empty = u:empty_feed();
+audit = unwrap(u:prepend(unwrap(u:prepend(unwrap(u:prepend(unwrap(u:prepend(empty, 120)), 87)), 115)), 92));
+display = unwrap(u:retain_at_least(audit, 100));
+
+print("Problem: remove expired alert IDs below watermark 100 without changing an audit snapshot.");
+print("Solution: a recursive stable filter creates a smaller immutable feed and retains the original value.");
+{
+  retention_watermark: 100,
+  audit_snapshot: unwrap(u:alert_ids(audit)),
+  current_display: unwrap(u:alert_ids(display)),
+  expired_count: 2,
+  structural_sharing_guaranteed: 0
+}

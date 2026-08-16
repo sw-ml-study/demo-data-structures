@@ -13,5 +13,5 @@ count=$(awk -F '\t' 'NR > 1 && NF && $9 != "gated" { count++ } END { print count
 awk -F '\t' 'NR > 1 && NF && $9 != "gated" { print $1 "\t" $2 }' "$catalog" |
 while IFS="$(printf '\t')" read -r id path; do
   echo "RUN $id"
-  "$mlpl" "$repo_root/$path"
+  "$mlpl" --source-dir "$repo_root" "$repo_root/$path"
 done

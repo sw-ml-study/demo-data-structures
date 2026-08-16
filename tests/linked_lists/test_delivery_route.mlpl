@@ -1,0 +1,34 @@
+# Conformance tests for the index-backed singly linked delivery route.
+
+include "src/linked_lists/delivery_route.mlpl";
+
+@test {name: "delivery linked list contract", tags: ["delivery", "unit", "native"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  original = u:route();
+  u:assert_true(u:valid(original), "initial linked-list invariant failed")?;
+  u:assert_eq(u:traverse(original)?, [101, 202, 303], "initial traversal failed")?;
+
+  after_head = u:insert_after(original, 101, 111)?;
+  u:assert_eq(u:traverse(after_head)?, [101, 111, 202, 303], "head insertion failed")?;
+
+  after_middle = u:insert_after(original, 202, 250)?;
+  u:assert_eq(u:traverse(after_middle)?, [101, 202, 250, 303], "middle insertion failed")?;
+  u:assert_eq(after_middle.values, [101, 202, 303, 250], "insert shifted physical node values")?;
+  u:assert_eq(after_middle.next, [1, 3, 0 - 1, 2], "middle insertion rewired wrong handles")?;
+
+  after_tail = u:insert_after(original, 303, 404)?;
+  u:assert_eq(u:traverse(after_tail)?, [101, 202, 303, 404], "tail insertion failed")?;
+  u:assert_eq(after_tail.size, 4, "insert did not grow node arena")?;
+  u:assert_true(u:valid(after_tail), "grown linked-list invariant failed")?;
+
+  u:assert_err(u:insert_after(original, 999, 404), "missing target should fail")?;
+  malformed = {values: [1, 2], next: [1, 0], head: 0, size: 2};
+  u:assert_err(u:traverse(malformed), "cycle should violate list invariant")?;
+
+  u:assert_eq(original.values, [101, 202, 303], "insert changed original values")?;
+  u:assert_eq(original.next, [1, 2, 0 - 1], "insert changed original handles")?;
+  ok({test: "delivery-route-linked-list", cases: 10})
+}
+
+
+u:run_registered_tests()

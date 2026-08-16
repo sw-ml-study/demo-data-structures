@@ -1,0 +1,35 @@
+# Mini-app: schedule regular and urgent service-desk requests.
+#
+# Regular requests join the back, while urgent requests join the front. The
+# desk always serves from the front. A deque fits because it supports insertion
+# at both ends while retaining an explicit service order.
+#
+# Request IDs: 701/702/703 are regular; 999 is urgent.
+# data_structure: immutable dynamically sized deque
+# algorithm: push-front/back and pop-front
+# dynamic_size: yes
+# logical_complexity: end operations O(1) target
+# current_copy_complexity: every end operation copies O(n) array storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+
+include "../../src/deques/service_desk.mlpl";
+
+waiting = u:new_deque();
+waiting = unwrap(u:push_back(waiting, 701));
+waiting = unwrap(u:push_back(waiting, 702));
+waiting = unwrap(u:push_front(waiting, 999));
+waiting = unwrap(u:push_back(waiting, 703));
+
+print("Problem: urgent request 999 must go before regular requests without reversing their order.");
+print("Service order after arrivals:");
+print(waiting.data);
+
+s1 = unwrap(u:pop_front(waiting));
+s2 = unwrap(u:pop_front(s1.deque));
+s3 = unwrap(u:pop_front(s2.deque));
+served = concat(concat(s1.value, s2.value), s3.value);
+
+print("Solution: urgent 999 is served first; regular requests remain FIFO.");
+{served_requests: served, still_waiting: s3.deque.data, next_request: take(s3.deque.data, 0, 0)}

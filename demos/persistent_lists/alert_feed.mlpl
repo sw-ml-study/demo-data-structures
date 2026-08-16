@@ -1,0 +1,34 @@
+# Mini-app: maintain a newest-first alert feed with an immutable cons list.
+#
+# A monitoring dashboard receives alert IDs over time. Operators need the
+# newest alerts first, while an earlier snapshot must remain available for an
+# audit already in progress. Prepending to an immutable cons list expresses
+# both requirements: the new head points to the prior feed value, and traversal
+# naturally visits newest to oldest.
+#
+# data_structure: persistent immutable cons list
+# algorithm: prepend and recursive traversal
+# representation: empty sentinel {empty: 1}; node {empty: 0, alert_id, next}
+# dynamic_size: yes
+# logical_complexity: prepend O(1), traversal O(n)
+# current_copy_complexity: nested record construction/cloning may copy O(n)
+# explicit_loops: 0 (recursive traversal)
+# target_loops: 0
+# required_features: current
+# future_improvement: runtime structural sharing makes retained tails O(1)
+
+include "../../src/persistent_lists/alert_feed.mlpl";
+
+empty = u:empty_feed();
+morning_feed = unwrap(u:prepend(unwrap(u:prepend(empty, 4101)), 4102));
+current_feed = unwrap(u:prepend(unwrap(u:prepend(morning_feed, 4201)), 4202));
+
+print("Problem: show new alerts first while preserving the morning audit snapshot.");
+print("Morning snapshot before two later alerts:");
+print(unwrap(u:alert_ids(morning_feed)));
+print("Solution: prepend creates a new feed value whose tail is the prior feed.");
+{
+  current_newest_first: unwrap(u:alert_ids(current_feed)),
+  retained_morning_snapshot: unwrap(u:alert_ids(morning_feed)),
+  newest_alert: current_feed.alert_id
+}

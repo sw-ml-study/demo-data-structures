@@ -13,5 +13,6 @@ audit:
     ./scripts/validate-catalog catalog/demos.tsv
     ./scripts/validate-catalog catalog/tests.tsv
     ./tests/test-bootstrap
+    ./tests/test-sequential-migration
 
 check: audit demos tests

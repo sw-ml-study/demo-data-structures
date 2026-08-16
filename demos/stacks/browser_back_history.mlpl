@@ -1,0 +1,38 @@
+# Mini-app: implement a browser's Back button.
+#
+# A user visits pages in order, then presses Back twice. A stack is the right
+# data structure because the most recently departed page must be restored
+# first (last in, first out). Page names use numeric IDs because current
+# sw-MLPL strings are labels rather than general sequence data:
+#   101 = Home, 202 = Documentation, 303 = API, 404 = Examples.
+#
+# data_structure: immutable dynamically sized stack
+# algorithm: push on visit, pop on Back
+# dynamic_size: yes
+# logical_complexity: push O(1) amortized target, pop O(1) target
+# current_copy_complexity: push/pop copy O(n) array storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+
+include "../../src/stacks/browser_back_history.mlpl";
+
+session = u:new_session(101);
+session = unwrap(u:visit(session, 202));
+session = unwrap(u:visit(session, 303));
+session = unwrap(u:visit(session, 404));
+
+print("Problem: after visiting Home, Documentation, API, and Examples, press Back twice.");
+print("Page IDs: 101=Home, 202=Documentation, 303=API, 404=Examples.");
+print("Back history before navigation:");
+print(session.back_stack.data);
+
+session = unwrap(u:go_back(session));
+session = unwrap(u:go_back(session));
+
+print("Solution: the browser returns to Documentation (page 202).");
+{
+  current_page: session.current_page,
+  remaining_back_history: session.back_stack.data,
+  can_go_back: gt(session.back_stack.size, 0)
+}

@@ -1,0 +1,17 @@
+# Mini-app: maintain an ordered numeric directory with stable arena handles.
+# data_structure: immutable indexed four-level skip list
+# algorithm: deterministic-height insert, lookup, traversal, and deletion
+# representation: append-only parallel arrays plus flat forward-level table
+# dynamic_size: yes
+# logical_complexity: traversal depends on deterministic height distribution; no randomized guarantee claimed
+# current_copy_complexity: each immutable scatter/concat copies arena arrays
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: transient/copy-on-write arena builders and injectable randomness
+include "../../src/linked_lists/indexed_skip_list.mlpl";
+published = unwrap(u:sl_from_vectors([40, 10, 70, 20, 60], [400, 100, 700, 200, 600]));
+live = unwrap(u:sl_delete(unwrap(u:sl_put(unwrap(u:sl_put(published, 30, 300)), 20, 222)), 60));
+print("Problem: update and retire directory entries while preserving the published ordered directory.");
+print("Solution: deterministic skip levels bypass portions of an indexed level-zero list; stable handles are never recycled.");
+{live_keys: u:sl_keys(live), live_value_20: unwrap(u:sl_lookup(live, 20)), retained_published_keys: u:sl_keys(published), retained_value_20: unwrap(u:sl_lookup(published, 20)), arena_nodes: live.nodes, active_entries: live.size, randomized_expected_complexity_claimed: 0}

@@ -1,0 +1,43 @@
+# Conformance tests for the immutable stack used by the browser-history demo.
+
+include "src/stacks/browser_back_history.mlpl";
+
+@test {name: "browser stack contract", tags: ["browser", "unit", "native"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  empty = u:new_stack();
+  u:assert_true(u:valid(empty), "new stack invariant failed")?;
+  u:assert_err(u:pop(empty), "empty pop should fail")?;
+
+  one = u:push(empty, 101)?;
+  two = u:push(one, 202)?;
+  three = u:push(two, 303)?;
+  four = u:push(three, 404)?;
+  u:assert_eq(four.size, 4, "stack did not grow dynamically")?;
+  u:assert_eq(four.data, [101, 202, 303, 404], "push order is wrong")?;
+  u:assert_true(u:valid(four), "grown stack invariant failed")?;
+
+  p1 = u:pop(four)?;
+  p2 = u:pop(p1.stack)?;
+  p3 = u:pop(p2.stack)?;
+  p4 = u:pop(p3.stack)?;
+  u:assert_eq(p1.value, 404, "first pop violated LIFO order")?;
+  u:assert_eq(p2.value, 303, "second pop violated LIFO order")?;
+  u:assert_eq(p3.value, 202, "third pop violated LIFO order")?;
+  u:assert_eq(p4.value, 101, "fourth pop violated LIFO order")?;
+  u:assert_eq(p4.stack.size, 0, "final pop should produce empty stack")?;
+
+  u:assert_eq(empty.size, 0, "push changed empty version")?;
+  u:assert_eq(one.data, [101], "later pushes changed one-item version")?;
+  u:assert_eq(two.data, [101, 202], "later pushes changed two-item version")?;
+  u:assert_eq(four.data, [101, 202, 303, 404], "pop changed original stack")?;
+
+  malformed = {data: [1, 2], size: 3};
+  u:assert_err(u:push(malformed, 4), "push should reject malformed stack")?;
+  u:assert_err(u:pop(malformed), "pop should reject malformed stack")?;
+  u:assert_err(u:push(empty, [1, 2]), "push should reject non-scalar values")?;
+
+  ok({test: "browser-back-stack", cases: 10})
+}
+
+
+u:run_registered_tests()

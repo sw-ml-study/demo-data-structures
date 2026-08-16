@@ -1,0 +1,57 @@
+# Vector algorithm: immutable chunked growth and indexed read
+#
+# data_structure: chunked numeric vector
+# algorithm: append with geometric chunk growth and bounds-safe read
+# dynamic_size: yes
+# representation: {chunks: rank-2 array, size, capacity, chunk_width}
+# invariant: shape(chunks) = [capacity/chunk_width, chunk_width], 0 <= size <= capacity
+# logical_complexity: read O(1), append O(1) amortized target
+# current_copy_complexity: every update copies O(capacity); growth also copies storage
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: pure multidimensional put and Clojure-style shared chunks
+
+include "src/vectors/chunked_vector.mlpl";
+
+@test {name: "chunked vector contract", tags: ["chunked", "unit", "native"]}
+def u:test_contract() { "Run this standalone example and return its result.";
+  empty = u:new_chunked(3)?;
+  u:assert_true(u:valid(empty), "new chunked vector invariant failed")?;
+  u:assert_eq(empty.capacity, 3, "initial capacity should equal chunk width")?;
+  u:assert_err(u:read_at(empty, 0), "empty read should fail")?;
+
+  one = u:append(empty, 10)?;
+  two = u:append(one, 20)?;
+  three = u:append(two, 30)?;
+  u:assert_eq(three.capacity, 3, "append within first chunk changed capacity")?;
+
+  four = u:append(three, 40)?;
+  five = u:append(four, 50)?;
+  u:assert_eq(four.capacity, 6, "cross-chunk append did not grow capacity")?;
+  u:assert_eq(five.size, 5, "logical size did not grow")?;
+  u:assert_true(u:valid(five), "grown chunked vector invariant failed")?;
+
+  u:assert_eq(u:read_at(five, 0)?, 10, "first element read failed")?;
+  u:assert_eq(u:read_at(five, 2)?, 30, "chunk boundary read failed")?;
+  u:assert_eq(u:read_at(five, 3)?, 40, "second chunk read failed")?;
+  u:assert_eq(u:read_at(five, 4)?, 50, "last element read failed")?;
+  u:assert_err(u:read_at(five, 5), "capacity cell beyond logical size should fail")?;
+  u:assert_err(u:read_at(five, 0 - 1), "negative read should fail")?;
+  u:assert_err(u:read_at(five, 1.5), "fractional read should fail")?;
+
+  u:assert_eq(empty.size, 0, "append changed empty version")?;
+  u:assert_eq(flatten(three.chunks), [10, 20, 30], "growth changed full first chunk")?;
+  u:assert_eq(flatten(four.chunks), [10, 20, 30, 40, 0, 0], "later append changed grown version")?;
+
+  malformed = {chunks: [[1, 2]], size: 1, capacity: 3, chunk_width: 2};
+  u:assert_err(u:append(malformed, 3), "append should reject invalid capacity")?;
+  u:assert_err(u:new_chunked(0), "zero chunk width should fail")?;
+  u:assert_err(u:new_chunked(2.5), "fractional chunk width should fail")?;
+  u:assert_err(u:append(empty, [1, 2]), "append should reject non-scalar value")?;
+
+  ok({algorithm: "chunked-vector", size: five.size, capacity: five.capacity, chunks: tally(five.chunks)})
+}
+
+
+u:run_registered_tests()

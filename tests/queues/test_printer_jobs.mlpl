@@ -1,0 +1,44 @@
+# Conformance tests for the immutable FIFO queue used by the printer demo.
+
+include "src/queues/printer_jobs.mlpl";
+
+@test {name: "printer queue contract", tags: ["printer", "unit", "native"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  empty = u:new_queue();
+  u:assert_true(u:valid(empty), "new queue invariant failed")?;
+  u:assert_err(u:dequeue(empty), "empty dequeue should fail")?;
+
+  one = u:enqueue(empty, 501)?;
+  two = u:enqueue(one, 502)?;
+  three = u:enqueue(two, 503)?;
+  four = u:enqueue(three, 504)?;
+  u:assert_eq(four.size, 4, "queue did not grow dynamically")?;
+  u:assert_eq(four.data, [501, 502, 503, 504], "enqueue order is wrong")?;
+  u:assert_true(u:valid(four), "grown queue invariant failed")?;
+
+  d1 = u:dequeue(four)?;
+  d2 = u:dequeue(d1.queue)?;
+  d3 = u:dequeue(d2.queue)?;
+  d4 = u:dequeue(d3.queue)?;
+  u:assert_eq(d1.value, 501, "first dequeue violated FIFO order")?;
+  u:assert_eq(d2.value, 502, "second dequeue violated FIFO order")?;
+  u:assert_eq(d3.value, 503, "third dequeue violated FIFO order")?;
+  u:assert_eq(d4.value, 504, "fourth dequeue violated FIFO order")?;
+  u:assert_eq(d4.queue.size, 0, "final dequeue should produce empty queue")?;
+
+  u:assert_eq(empty.size, 0, "enqueue changed empty version")?;
+  u:assert_eq(one.data, [501], "later enqueues changed one-item version")?;
+  u:assert_eq(two.data, [501, 502], "later enqueues changed two-item version")?;
+  u:assert_eq(four.data, [501, 502, 503, 504], "dequeue changed original queue")?;
+  u:assert_eq(d1.queue.data, [502, 503, 504], "dequeue retained wrong tail")?;
+
+  malformed = {data: [1, 2], size: 3};
+  u:assert_err(u:enqueue(malformed, 4), "enqueue should reject malformed queue")?;
+  u:assert_err(u:dequeue(malformed), "dequeue should reject malformed queue")?;
+  u:assert_err(u:enqueue(empty, [1, 2]), "enqueue should reject non-scalar values")?;
+
+  ok({test: "printer-job-queue", cases: 11})
+}
+
+
+u:run_registered_tests()

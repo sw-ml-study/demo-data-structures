@@ -1,0 +1,96 @@
+def u:dll_empty() { "Create an empty indexed doubly linked list with parallel immutable arena arrays."; {values: [], previous: [], next: [], active: [], head: -1, tail: -1, size: 0} }
+def u:dll_handle_in_range(list, handle) { "Return whether a scalar integer handle addresses the list arena."; if eq(rank(handle), 0) { if eq(handle, floor(handle)) { gt(handle, -1) * lt(handle, tally(list.values)) } else { 0 } } else { 0 } }
+def u:dll_handle_active(list, handle) { "Return whether a handle is in range and names a live list node."; if u:dll_handle_in_range(list, handle) { eq(take(list.active, 0, handle), 1) } else { 0 } }
+def u:dll_binary_active_from(active, index) { "Validate remaining active flags and count live nodes."; if eq(index, tally(active)) { {valid: 1, count: 0} } else { flag = take(active, 0, index); rest = u:dll_binary_active_from(active, index + 1); {valid: (eq(flag, 0) + eq(flag, 1)) * rest.valid, count: flag + rest.count} } }
+def u:dll_links_from(list, handle) { "Validate reciprocal links, endpoints, and cleared inactive nodes recursively.";
+  if eq(handle, tally(list.values)) { 1 } else {
+    prior = take(list.previous, 0, handle); following = take(list.next, 0, handle);
+    if eq(take(list.active, 0, handle), 0) { eq(prior, -1) * eq(following, -1) * u:dll_links_from(list, handle + 1) } else {
+      prior_ok = if eq(prior, -1) { eq(handle, list.head) } else { if u:dll_handle_active(list, prior) { eq(take(list.next, 0, prior), handle) } else { 0 } };
+      next_ok = if eq(following, -1) { eq(handle, list.tail) } else { if u:dll_handle_active(list, following) { eq(take(list.previous, 0, following), handle) } else { 0 } };
+      prior_ok * next_ok * u:dll_links_from(list, handle + 1)
+    }
+  }
+}
+def u:dll_forward_audit(list, handle, steps, last) { "Audit bounded head-to-tail reachability and detect cycles or disconnected live nodes.";
+  if gt(steps, list.size) { {valid: 0, count: steps, last: last} } else {
+    if eq(handle, -1) { {valid: eq(steps, list.size) * eq(last, list.tail), count: steps, last: last} } else {
+      if u:dll_handle_active(list, handle) { u:dll_forward_audit(list, take(list.next, 0, handle), steps + 1, handle) } else { {valid: 0, count: steps, last: last} }
+    }
+  }
+}
+def u:dll_reverse_audit(list, handle, steps, last) { "Audit bounded tail-to-head reachability and detect cycles or disconnected live nodes.";
+  if gt(steps, list.size) { {valid: 0, count: steps, last: last} } else {
+    if eq(handle, -1) { {valid: eq(steps, list.size) * eq(last, list.head), count: steps, last: last} } else {
+      if u:dll_handle_active(list, handle) { u:dll_reverse_audit(list, take(list.previous, 0, handle), steps + 1, handle) } else { {valid: 0, count: steps, last: last} }
+    }
+  }
+}
+def u:dll_valid(list) { "Validate shapes, live count, endpoints, reciprocal links, connectivity, and acyclicity.";
+  nodes = tally(list.values);
+  if (1 - eq(rank(list.values), 1)) + (1 - eq(rank(list.previous), 1)) + (1 - eq(rank(list.next), 1)) + (1 - eq(rank(list.active), 1)) { 0 } else {
+    if (1 - eq(tally(list.previous), nodes)) + (1 - eq(tally(list.next), nodes)) + (1 - eq(tally(list.active), nodes)) { 0 } else {
+      flags = u:dll_binary_active_from(list.active, 0);
+      if (1 - flags.valid) + (1 - eq(flags.count, list.size)) { 0 } else {
+        endpoints = if eq(list.size, 0) { eq(list.head, -1) * eq(list.tail, -1) } else { u:dll_handle_active(list, list.head) * u:dll_handle_active(list, list.tail) };
+        if 1 - endpoints { 0 } else { u:dll_links_from(list, 0) * u:dll_forward_audit(list, list.head, 0, -1).valid * u:dll_reverse_audit(list, list.tail, 0, -1).valid }
+      }
+    }
+  }
+}
+def u:dll_append_node(list, value, prior, following, new_head, new_tail) { "Append one arena node and return its handle with the rebuilt list value.";
+  handle = tally(list.values);
+  {handle: handle, list: {values: concat(list.values, value), previous: concat(list.previous, prior), next: concat(list.next, following), active: concat(list.active, 1), head: new_head, tail: new_tail, size: list.size + 1}}
+}
+def u:dll_insert_head(list, value) { "Insert a value at the logical head while retaining the input list.";
+  if 1 - u:dll_valid(list) { err({kind: "list", message: "invalid doubly linked list"}) } else {
+    handle = tally(list.values);
+    prepared = if eq(list.size, 0) { list } else { {values: list.values, previous: scatter(list.previous, list.head, handle), next: list.next, active: list.active, head: list.head, tail: list.tail, size: list.size} };
+    appended = u:dll_append_node(prepared, value, -1, list.head, handle, if eq(list.size, 0) { handle } else { list.tail });
+    ok(appended)
+  }
+}
+def u:dll_insert_tail(list, value) { "Insert a value at the logical tail while retaining the input list.";
+  if 1 - u:dll_valid(list) { err({kind: "list", message: "invalid doubly linked list"}) } else {
+    handle = tally(list.values);
+    prepared = if eq(list.size, 0) { list } else { {values: list.values, previous: list.previous, next: scatter(list.next, list.tail, handle), active: list.active, head: list.head, tail: list.tail, size: list.size} };
+    appended = u:dll_append_node(prepared, value, list.tail, -1, if eq(list.size, 0) { handle } else { list.head }, handle);
+    ok(appended)
+  }
+}
+def u:dll_insert_after(list, anchor, value) { "Insert a new node after a live anchor handle and repair both directions.";
+  if 1 - u:dll_valid(list) { err({kind: "list", message: "invalid doubly linked list"}) } else {
+    if 1 - u:dll_handle_active(list, anchor) { err({kind: "handle", message: "insert-after anchor is inactive or invalid"}) } else {
+      following = take(list.next, 0, anchor); handle = tally(list.values);
+      next_links = scatter(list.next, anchor, handle);
+      previous_links = if eq(following, -1) { list.previous } else { scatter(list.previous, following, handle) };
+      prepared = {values: list.values, previous: previous_links, next: next_links, active: list.active, head: list.head, tail: list.tail, size: list.size};
+      ok(u:dll_append_node(prepared, value, anchor, following, list.head, if eq(following, -1) { handle } else { list.tail }))
+    }
+  }
+}
+def u:dll_insert_before(list, anchor, value) { "Insert a new node before a live anchor handle by delegating to head or insert-after.";
+  if 1 - u:dll_valid(list) { err({kind: "list", message: "invalid doubly linked list"}) } else {
+    if 1 - u:dll_handle_active(list, anchor) { err({kind: "handle", message: "insert-before anchor is inactive or invalid"}) } else {
+      prior = take(list.previous, 0, anchor);
+      if eq(prior, -1) { u:dll_insert_head(list, value) } else { u:dll_insert_after(list, prior, value) }
+    }
+  }
+}
+def u:dll_delete(list, handle) { "Delete a live node, repair both neighbors and endpoints, and leave a nonreusable stale handle.";
+  if 1 - u:dll_valid(list) { err({kind: "list", message: "invalid doubly linked list"}) } else {
+    if 1 - u:dll_handle_active(list, handle) { err({kind: "handle", message: "delete handle is inactive or invalid"}) } else {
+      prior = take(list.previous, 0, handle); following = take(list.next, 0, handle);
+      previous_links = if eq(following, -1) { list.previous } else { scatter(list.previous, following, prior) };
+      next_links = if eq(prior, -1) { list.next } else { scatter(list.next, prior, following) };
+      ok({values: list.values, previous: scatter(previous_links, handle, -1), next: scatter(next_links, handle, -1), active: scatter(list.active, handle, 0), head: if eq(prior, -1) { following } else { list.head }, tail: if eq(following, -1) { prior } else { list.tail }, size: list.size - 1})
+    }
+  }
+}
+def u:dll_forward_from(list, handle, values, steps) { "Collect live values from a handle toward the tail with a bounded cycle guard."; if eq(handle, -1) { ok(values) } else { if eq(steps, list.size) { err({kind: "cycle", message: "forward traversal exceeded live size"}) } else { if u:dll_handle_active(list, handle) { u:dll_forward_from(list, take(list.next, 0, handle), concat(values, take(list.values, 0, handle)), steps + 1) } else { err({kind: "handle", message: "forward traversal reached inactive handle"}) } } } }
+def u:dll_reverse_from(list, handle, values, steps) { "Collect live values from a handle toward the head with a bounded cycle guard."; if eq(handle, -1) { ok(values) } else { if eq(steps, list.size) { err({kind: "cycle", message: "reverse traversal exceeded live size"}) } else { if u:dll_handle_active(list, handle) { u:dll_reverse_from(list, take(list.previous, 0, handle), concat(values, take(list.values, 0, handle)), steps + 1) } else { err({kind: "handle", message: "reverse traversal reached inactive handle"}) } } } }
+def u:dll_forward(list) { "Return all live values from head to tail after validating the list."; if u:dll_valid(list) { u:dll_forward_from(list, list.head, [], 0) } else { err({kind: "list", message: "invalid doubly linked list"}) } }
+def u:dll_reverse(list) { "Return all live values from tail to head after validating the list."; if u:dll_valid(list) { u:dll_reverse_from(list, list.tail, [], 0) } else { err({kind: "list", message: "invalid doubly linked list"}) } }
+def u:dll_value(list, handle) { "Return the value stored at a live handle."; if 1 - u:dll_valid(list) { err({kind: "list", message: "invalid doubly linked list"}) } else { if u:dll_handle_active(list, handle) { ok(take(list.values, 0, handle)) } else { err({kind: "handle", message: "value handle is inactive or invalid"}) } } }
+def u:dll_from_values_from(list, values, index) { "Append remaining vector values to a doubly linked list."; if eq(index, tally(values)) { ok(list) } else { inserted = u:dll_insert_tail(list, take(values, 0, index))?; u:dll_from_values_from(inserted.list, values, index + 1) } }
+def u:dll_from_values(values) { "Build an indexed doubly linked list from a rank-one numeric vector."; if eq(rank(values), 1) { u:dll_from_values_from(u:dll_empty(), values, 0) } else { err({kind: "shape", message: "list values must be a vector"}) } }

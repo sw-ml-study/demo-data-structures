@@ -14,13 +14,16 @@ memory and hashing measurements remain in
 
 ## Start here
 
-The migration is being delivered in this order:
+The migration is being delivered in this order. The first batch is now
+available:
 
 1. vectors, stacks, queues, deques, linked lists, and persistent lists;
 2. sets, maps, foundational hashing, heaps, priority queues, and LRU caches;
 3. binary/search/balanced trees, tries, B-trees, and indexed range structures.
 
-Once the first batch lands, run:
+The repository currently has nine sequential-structure demos and twelve
+conformance files. See the
+[dynamic-sequence report](docs/dynamic-sequence-report.md), then run:
 
 ```sh
 just demos

@@ -1,0 +1,28 @@
+# Native tests for immutable indexed deterministic skip list.
+include "src/linked_lists/indexed_skip_list.mlpl";
+
+@test {name: "skip list ordered persistent directory", tags: ["linked-list", "skip-list", "native"]}
+def u:test_sl_directory() { "Verify empty, varied insertion orders, replacement, signed/zero entries, lookup, and retained versions.";
+  empty = u:sl_empty(); u:assert_true(u:sl_valid(empty), "empty invalid")?; u:assert_err(u:sl_lookup(empty, 1), "empty lookup should miss")?;
+  ascending = u:sl_from_vectors([1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6])?; descending = u:sl_from_vectors([6, 5, 4, 3, 2, 1], [6, 5, 4, 3, 2, 1])?; mixed = u:sl_from_vectors([40, -5, 90, 0, 20, 70], [4, 5, 9, 0, 2, 7])?;
+  u:assert_true(u:sl_valid(ascending) * u:sl_valid(descending) * u:sl_valid(mixed), "built list invalid")?; u:assert_eq(u:sl_keys(ascending), range(6) + 1, "ascending failed")?; u:assert_eq(u:sl_keys(descending), range(6) + 1, "descending failed")?; u:assert_eq(u:sl_keys(mixed), [-5, 0, 20, 40, 70, 90], "mixed order failed")?; u:assert_eq(u:sl_lookup(mixed, 0)?, 0, "zero entry failed")?;
+  replaced = u:sl_put(mixed, 20, 222)?; u:assert_eq(replaced.nodes, mixed.nodes, "replacement allocated handle")?; u:assert_eq(u:sl_lookup(replaced, 20)?, 222, "replacement failed")?; u:assert_eq(u:sl_lookup(mixed, 20)?, 2, "replacement changed snapshot")?;
+  ok({test: "skip-list-directory", cases: 10})
+}
+
+@test {name: "skip list deletion and stable handles", tags: ["linked-list", "persistent", "native"]}
+def u:test_sl_delete() { "Verify first/middle/last deletion, stale handles, missing operations, retained roots, and deletion to empty.";
+  original = u:sl_from_vectors([10, 20, 30, 40], [1, 2, 3, 4])?; first = u:sl_find_handle(original, 10); middle = u:sl_find_handle(original, 30); last = u:sl_find_handle(original, 40);
+  a = u:sl_delete(original, 10)?; b = u:sl_delete(a, 30)?; c = u:sl_delete(b, 40)?;
+  u:assert_true(u:sl_valid(a) * u:sl_valid(b) * u:sl_valid(c), "deleted version invalid")?; u:assert_eq(u:sl_keys(c), [20], "position deletion failed")?; u:assert_eq([take(a.active, 0, first), take(b.active, 0, middle), take(c.active, 0, last)], [0, 0, 0], "handles not stale")?; u:assert_eq(c.nodes, original.nodes, "handles recycled")?; u:assert_eq(u:sl_keys(original), [10, 20, 30, 40], "original changed")?; u:assert_err(u:sl_delete(c, 99), "missing delete should fail")?; gone = u:sl_delete(c, 20)?; u:assert_eq(gone.size, 0, "delete to empty failed")?; u:assert_true(u:sl_valid(gone), "empty-after-delete invalid")?;
+  ok({test: "skip-list-delete", cases: 8})
+}
+
+@test {name: "skip list structural validation", tags: ["linked-list", "validation", "native"]}
+def u:test_sl_validation() { "Verify input checks and handle, order, cycle, activity, level, and shape corruption.";
+  list = u:sl_from_vectors([10, 20, 30], [1, 2, 3])?; u:assert_err(u:sl_put(list, 1.5, 1), "fractional key should fail")?; u:assert_err(u:sl_put(list, [1], 1), "vector key should fail")?; u:assert_err(u:sl_put(list, 1, [1]), "vector value should fail")?;
+  first = take(list.forward, 0, 0); bad_handle = {nodes: list.nodes, size: list.size, keys: list.keys, values: list.values, heights: list.heights, active: list.active, forward: scatter(list.forward, 0, 99)}; cycle = {nodes: list.nodes, size: list.size, keys: list.keys, values: list.values, heights: list.heights, active: list.active, forward: scatter(list.forward, u:sl_cell(first, 0), first)}; bad_order = {nodes: list.nodes, size: list.size, keys: scatter(list.keys, first, 99), values: list.values, heights: list.heights, active: list.active, forward: list.forward}; bad_active = {nodes: list.nodes, size: list.size - 1, keys: list.keys, values: list.values, heights: list.heights, active: scatter(list.active, first, 0), forward: list.forward}; bad_shape = {nodes: list.nodes, size: list.size, keys: list.keys, values: list.values, heights: list.heights, active: list.active, forward: concat(list.forward, -1)};
+  u:assert_false(u:sl_valid(bad_handle), "bad handle passed")?; u:assert_false(u:sl_valid(cycle), "cycle passed")?; u:assert_false(u:sl_valid(bad_order), "bad order passed")?; u:assert_false(u:sl_valid(bad_active), "inactive link passed")?; u:assert_false(u:sl_valid(bad_shape), "bad shape passed")?;
+  ok({test: "skip-list-validation", cases: 8})
+}
+u:run_registered_tests()

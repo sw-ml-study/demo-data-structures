@@ -1,0 +1,50 @@
+# Shared production definitions for growable vector.
+
+def u:new_vector() { "Create an empty vector value.";
+  {data: fill([0], 0), size: 0}
+}
+
+def u:from_array(data) { "Convert the supplied representation using from array.";
+  if eq(rank(data), 1) {
+    ok({data: data, size: tally(data)})
+  } else {
+    err({kind: "representation", message: "growable vector data must have rank one"})
+  }
+}
+
+def u:valid(vector) { "Check whether vector satisfies the valid invariant.";
+  if eq(rank(vector.data), 1) {
+    if eq(vector.size, floor(vector.size)) {
+      if lt(vector.size, 0) { 0 } else { eq(vector.size, tally(vector.data)) }
+    } else { 0 }
+  } else { 0 }
+}
+
+def u:append(vector, value) { "Add the supplied item and return the updated structure.";
+  if u:valid(vector) {
+    if eq(rank(value), 0) {
+      data = concat(vector.data, value);
+      ok({data: data, size: vector.size + 1})
+    } else {
+      err({kind: "value", message: "append accepts one numeric scalar"})
+    }
+  } else {
+    err({kind: "representation", message: "cannot append to an invalid growable vector"})
+  }
+}
+
+def u:pop(vector) { "Remove the next item and return the resulting structure.";
+  if u:valid(vector) {
+    if eq(vector.size, 0) {
+      err({kind: "empty", message: "cannot pop an empty growable vector"})
+    } else {
+      last_index = vector.size - 1;
+      value = take(vector.data, 0, last_index);
+      keep = lt(range(vector.size), last_index);
+      data = compress(keep, vector.data);
+      ok({vector: {data: data, size: last_index}, value: value})
+    }
+  } else {
+    err({kind: "representation", message: "cannot pop an invalid growable vector"})
+  }
+}

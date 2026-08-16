@@ -1,0 +1,113 @@
+# Shared production definitions for persistent alert list.
+
+def u:empty_feed() { "Create an empty feed value."; {empty: 1} }
+
+def u:valid(feed) { "Check whether feed satisfies the valid invariant.";
+  marker_ok = eq(rank(feed.empty), 0) * (eq(feed.empty, 0) + eq(feed.empty, 1));
+  if marker_ok {
+    if feed.empty {
+      1
+    } else {
+      eq(rank(feed.alert_id), 0) * u:valid(feed.next)
+    }
+  } else { 0 }
+}
+
+def u:prepend(feed, alert_id) { "Add an item at the front and return the updated structure.";
+  if u:valid(feed) {
+    if eq(rank(alert_id), 0) {
+      ok({empty: 0, alert_id: alert_id, next: feed})
+    } else {
+      err({kind: "alert-id", message: "alert IDs must be numeric scalars"})
+    }
+  } else {
+    err({kind: "representation", message: "cannot prepend to malformed feed"})
+  }
+}
+
+def u:alert_ids(feed) { "Return the alert ids result for the supplied feed.";
+  if u:valid(feed) {
+    if feed.empty {
+      ok(fill([0], 0))
+    } else {
+      tail_ids = u:alert_ids(feed.next)?;
+      ok(concat(feed.alert_id, tail_ids))
+    }
+  } else {
+    err({kind: "representation", message: "cannot traverse malformed feed"})
+  }
+}
+
+def u:pop_front(feed) { "Remove the front alert and return its ID plus the remaining immutable feed.";
+  if u:valid(feed) {
+    if feed.empty {
+      err({kind: "empty", message: "cannot pop an empty feed"})
+    } else {
+      ok({alert_id: feed.alert_id, feed: feed.next})
+    }
+  } else {
+    err({kind: "representation", message: "cannot pop a malformed feed"})
+  }
+}
+
+def u:drop_items(feed, count) { "Drop count alerts from the front, returning an immutable suffix feed.";
+  if u:valid(feed) {
+    if eq(rank(count), 0) * eq(count, floor(count)) * (gt(count, 0) + eq(count, 0)) {
+      if eq(count, 0) {
+        ok(feed)
+      } else {
+        if feed.empty {
+          err({kind: "count", message: "drop count exceeds feed length"})
+        } else {
+          u:drop_items(feed.next, count - 1)
+        }
+      }
+    } else {
+      err({kind: "count", message: "drop count must be a nonnegative integer scalar"})
+    }
+  } else {
+    err({kind: "representation", message: "cannot drop from malformed feed"})
+  }
+}
+
+def u:remove_alert(feed, alert_id) { "Return a feed with every occurrence of alert_id removed while preserving order.";
+  if u:valid(feed) {
+    if eq(rank(alert_id), 0) {
+      if feed.empty {
+        ok(feed)
+      } else {
+        filtered_tail = u:remove_alert(feed.next, alert_id)?;
+        if eq(feed.alert_id, alert_id) {
+          ok(filtered_tail)
+        } else {
+          u:prepend(filtered_tail, feed.alert_id)
+        }
+      }
+    } else {
+      err({kind: "alert-id", message: "alert IDs must be numeric scalars"})
+    }
+  } else {
+    err({kind: "representation", message: "cannot remove from malformed feed"})
+  }
+}
+
+def u:retain_at_least(feed, minimum_id) { "Return alerts whose numeric IDs are at least minimum_id, preserving feed order.";
+  if u:valid(feed) {
+    if eq(rank(minimum_id), 0) {
+      if feed.empty {
+        ok(feed)
+      } else {
+        filtered_tail = u:retain_at_least(feed.next, minimum_id)?;
+        if gt(feed.alert_id, minimum_id) + eq(feed.alert_id, minimum_id) {
+          u:prepend(filtered_tail, feed.alert_id)
+        } else {
+          ok(filtered_tail)
+        }
+      }
+    } else {
+      err({kind: "minimum-id", message: "minimum ID must be a numeric scalar"})
+    }
+  } else {
+    err({kind: "representation", message: "cannot filter malformed feed"})
+  }
+}

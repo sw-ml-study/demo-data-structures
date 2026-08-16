@@ -1,1 +1,10 @@
 id	path	data_structure	algorithm	dynamic_size	explicit_loops	target_loops	required_features	status
+vector-campaign-goal	demos/vectors/campaign_goal.mlpl	vector	prefix-sum-goal-search	yes	0	0	current	constrained
+stack-browser-back	demos/stacks/browser_back_history.mlpl	stack	browser-back-navigation	yes	0	0	current	constrained
+queue-printer-jobs	demos/queues/printer_jobs.mlpl	queue	fifo-printer-scheduling	yes	0	0	current	constrained
+deque-service-desk	demos/deques/service_desk.mlpl	deque	urgent-front-regular-back	yes	0	0	current	constrained
+linked-list-delivery-route	demos/linked_lists/delivery_route.mlpl	singly-linked-list	insert-after-and-traverse	yes	3	0	current	constrained
+linked-list-editable-route	demos/linked_lists/editable_delivery_route.mlpl	indexed-doubly-linked-list	bidirectional-insert-delete-traverse	yes	0	0	current	constrained
+linked-list-ordered-directory	demos/linked_lists/ordered_directory.mlpl	indexed-four-level-skip-list	deterministic-insert-lookup-delete-traverse	yes	0	0	current	constrained
+persistent-list-alert-feed	demos/persistent_lists/alert_feed.mlpl	persistent-cons-list	prepend-and-recursive-traverse	yes	0	0	current	constrained
+persistent-list-expiring-alerts	demos/persistent_lists/expiring_alert_feed.mlpl	persistent-cons-list	recursive-stable-cutoff-filter	yes	0	0	current	constrained

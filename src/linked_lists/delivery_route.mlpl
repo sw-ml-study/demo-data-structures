@@ -1,0 +1,68 @@
+# Shared production definitions for delivery linked list.
+
+def u:route() { "Return the route result."; {values: [101, 202, 303], next: [1, 2, 0 - 1], head: 0, size: 3} }
+
+def u:valid(list) { "Check whether list satisfies the valid invariant.";
+  shape_ok = eq(rank(list.values), 1) * eq(rank(list.next), 1);
+  size_ok = eq(list.size, tally(list.values)) * eq(list.size, tally(list.next));
+  if shape_ok * size_ok {
+    current = list.head;
+    count = 0;
+    ok_flag = 1;
+    while lt(count, list.size) {
+      if eq(current, 0 - 1) { ok_flag = 0; break } else {
+        if lt(current, 0) { ok_flag = 0; break } else {
+          if gt(current, list.size - 1) { ok_flag = 0; break } else {
+            current = take(list.next, 0, current);
+            count = count + 1
+          }
+        }
+      }
+    };
+    ok_flag * eq(current, 0 - 1) * eq(count, list.size)
+  } else { 0 }
+}
+
+def u:find_node(list, stop_id) { "Find node in the supplied structure.";
+  current = list.head;
+  steps = 0;
+  found = 0 - 1;
+  while lt(steps, list.size) {
+    if eq(take(list.values, 0, current), stop_id) { found = current; break } else {
+      current = take(list.next, 0, current);
+      steps = steps + 1
+    }
+  };
+  found
+}
+
+def u:insert_after(list, stop_id, new_stop) { "Add the supplied item and return the updated structure.";
+  if u:valid(list) {
+    target = u:find_node(list, stop_id);
+    if eq(target, 0 - 1) { err({kind: "missing-stop", message: "target is absent"}) } else {
+      new_index = list.size;
+      successor = take(list.next, 0, target);
+      next_with_node = concat(list.next, successor);
+      ok({
+        values: concat(list.values, new_stop),
+        next: scatter(next_with_node, target, new_index),
+        head: list.head,
+        size: list.size + 1
+      })
+    }
+  } else { err({kind: "representation", message: "invalid list"}) }
+}
+
+def u:traverse(list) { "Traverse the supplied structure in traverse order.";
+  if u:valid(list) {
+    result = fill([0], 0);
+    current = list.head;
+    steps = 0;
+    while lt(steps, list.size) {
+      result = concat(result, take(list.values, 0, current));
+      current = take(list.next, 0, current);
+      steps = steps + 1
+    };
+    ok(result)
+  } else { err({kind: "representation", message: "invalid list"}) }
+}

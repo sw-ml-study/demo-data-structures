@@ -1,6 +1,6 @@
 number = 1
 slug = "receive-sequential-structures"
-status = "pending"
+status = "in-progress"
 description = "Receive vectors, stacks, queues, deques, linked lists, and persistent lists f..."
 role = "production"
 context_files = []
