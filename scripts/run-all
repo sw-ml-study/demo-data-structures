@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+catalog="$repo_root/catalog/demos.tsv"
+"$repo_root/scripts/validate-catalog" "$catalog"
+mlpl=${MLPL:-"$repo_root/../sw-mlpl/target/release/mlpl-repl"}
+
+count=$(awk -F '\t' 'NR > 1 && NF && $9 != "gated" { count++ } END { print count + 0 }' "$catalog")
+[ "$count" -eq 0 ] && { echo "No data-structure demos registered yet."; exit 0; }
+[ -x "$mlpl" ] || { echo "mlpl-repl is not executable: $mlpl" >&2; exit 1; }
+
+awk -F '\t' 'NR > 1 && NF && $9 != "gated" { print $1 "\t" $2 }' "$catalog" |
+while IFS="$(printf '\t')" read -r id path; do
+  echo "RUN $id"
+  "$mlpl" "$repo_root/$path"
+done

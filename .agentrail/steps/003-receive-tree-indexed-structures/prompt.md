@@ -1,0 +1,1 @@
+Receive tree, trie, B-tree, Fenwick, segment, interval, order-statistic, and other manifest-approved indexed structures from ../demo-algorithms. Keep graph and sparse-matrix algorithm curricula in the source. Preserve tests, demos, docs, catalogs, and invariant/cost claims. Use TDD, run the target gate, commit, then complete.

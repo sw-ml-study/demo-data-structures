@@ -1,0 +1,9 @@
+number = 2
+slug = "receive-associative-priority-structures"
+status = "pending"
+description = "Receive sets, foundational hashing/maps, heaps/priority queues, and LRU/cache..."
+role = "production"
+context_files = []
+created_at = "2026-08-16T12:09:06"
+task_type = "repository-refactor"
+commits = []

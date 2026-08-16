@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+catalog="$repo_root/catalog/tests.tsv"
+"$repo_root/scripts/validate-catalog" "$catalog"
+
+count=$(awk -F '\t' 'NR > 1 && NF && $9 != "gated" { count++ } END { print count + 0 }' "$catalog")
+[ "$count" -eq 0 ] && { echo "No data-structure tests registered yet."; exit 0; }
+
+if [ -n "${MLPLUNIT:-}" ]; then runner=$MLPLUNIT
+elif command -v mlplunit >/dev/null 2>&1; then runner=$(command -v mlplunit)
+else
+  echo "mlplunit not found; set MLPLUNIT or add it to PATH" >&2
+  exit 1
+fi
+
+MLPL=${MLPL:-"$repo_root/../sw-mlpl/target/release/mlpl-repl"} \
+  "$runner" --config "$repo_root/mlplunit.conf" "$@"

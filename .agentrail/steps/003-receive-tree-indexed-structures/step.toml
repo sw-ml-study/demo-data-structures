@@ -1,0 +1,9 @@
+number = 3
+slug = "receive-tree-indexed-structures"
+status = "pending"
+description = "Receive tree, trie, B-tree, Fenwick, segment, interval, order-statistic, and ..."
+role = "production"
+context_files = []
+created_at = "2026-08-16T12:09:06"
+task_type = "repository-refactor"
+commits = []

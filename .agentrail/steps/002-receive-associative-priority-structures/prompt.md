@@ -1,0 +1,1 @@
+Receive sets, foundational hashing/maps, heaps/priority queues, and LRU/cache structures from ../demo-algorithms. Keep heap sort algorithm-owned in the source and advanced hash/memory measurements in demo-memory. Preserve tests, demos, docs, catalogs, and invariants. Use TDD, run the target gate, commit, then complete.

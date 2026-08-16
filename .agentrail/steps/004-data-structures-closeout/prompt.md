@@ -1,0 +1,1 @@
+Run the full target gate and the source repository's final ownership audit. Verify a concise data-structures thesis and learning path, working links, accurate counts, AgentRail instructions, matching legal files, thin just recipes, no absolute personal paths, no duplicate authoritative catalog entries, and tracked AgentRail metadata. Commit and complete with --done.

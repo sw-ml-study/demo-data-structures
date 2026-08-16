@@ -1,0 +1,1 @@
+Receive vectors, stacks, queues, deques, linked lists, and persistent lists from ../demo-algorithms according to its catalog/repository-ownership.tsv contract. Preserve history where practical, shared src definitions, catalogs, deterministic tests, demos, complexity/copy/loop notes, and README learning order. Use TDD, run the target gate, commit, then complete.

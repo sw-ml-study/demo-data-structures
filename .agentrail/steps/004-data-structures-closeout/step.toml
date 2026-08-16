@@ -1,0 +1,9 @@
+number = 4
+slug = "data-structures-closeout"
+status = "pending"
+description = "Run the full target gate and the source repository's final ownership audit. V..."
+role = "validation"
+context_files = []
+created_at = "2026-08-16T12:09:06"
+task_type = "repository-validation"
+commits = []

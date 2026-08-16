@@ -1,0 +1,6 @@
+targets = [
+    "CLAUDE.md",
+    "AGENTS.md",
+]
+auto_apply = false
+exclude = []

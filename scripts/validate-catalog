@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+catalog=${1:-"$repo_root/catalog/demos.tsv"}
+case "$(basename -- "$catalog")" in tests.tsv) prefix=tests ;; *) prefix=demos ;; esac
+
+expected=$(printf 'id\tpath\tdata_structure\talgorithm\tdynamic_size\texplicit_loops\ttarget_loops\trequired_features\tstatus')
+[ -f "$catalog" ] || { echo "catalog not found: $catalog" >&2; exit 1; }
+[ "$(sed -n '1p' "$catalog")" = "$expected" ] || { echo "catalog header does not match the required schema" >&2; exit 1; }
+
+awk -F '\t' -v root="$repo_root" -v prefix="$prefix" '
+  NR == 1 || NF == 0 { next }
+  NF != 9 { print "catalog line " NR ": expected 9 fields" > "/dev/stderr"; bad=1; next }
+  $1 !~ /^[a-z0-9][a-z0-9_-]*$/ || seen_id[$1]++ { print "catalog line " NR ": invalid or duplicate id" > "/dev/stderr"; bad=1 }
+  seen_path[$2]++ || index($2, prefix "/") != 1 || $2 !~ /[.]mlpl$/ { print "catalog line " NR ": invalid or duplicate path" > "/dev/stderr"; bad=1 }
+  $5 != "yes" && $5 != "no" { print "catalog line " NR ": invalid dynamic_size" > "/dev/stderr"; bad=1 }
+  $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ || $7 + 0 > $6 + 0 { print "catalog line " NR ": invalid loop counts" > "/dev/stderr"; bad=1 }
+  $9 != "runnable" && $9 != "constrained" && $9 != "gated" { print "catalog line " NR ": invalid status" > "/dev/stderr"; bad=1 }
+  ($9 == "runnable" || $9 == "constrained") && system("test -f \"" root "/" $2 "\"") != 0 { print "catalog line " NR ": missing script" > "/dev/stderr"; bad=1 }
+  END { exit bad ? 1 : 0 }
+' "$catalog"
