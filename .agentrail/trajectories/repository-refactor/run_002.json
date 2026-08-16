@@ -1,0 +1,11 @@
+{
+  "task_type": "repository-refactor",
+  "state": {
+    "number": 2,
+    "step": "receive-associative-priority-structures"
+  },
+  "action": "Added failing migration fixture; copied sets/maps/hashing/heaps/caches corpus; moved catalogs/docs; added web audit; retained heap sort boundary; ran full mlplunit-backed gates in both repos; committed detailed target change as f42d106.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-08-16T15:04:46"
+}
