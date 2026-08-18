@@ -1,0 +1,173 @@
+# Immutable AVL interval tree for half-open numeric intervals [start, end).
+def u:it_empty() {
+  "Create an empty interval tree.";
+  {empty: 1, height: 0, max_end: 0}
+}
+def u:it_max(a, b) {
+  "Return the greater numeric scalar.";
+  if gt(a, b) {
+    a
+  } else {
+    b
+  }
+}
+def u:it_make(start, end, left, right) {
+  "Build an interval node with derived height and maximum-end caches.";
+  {empty: 0, start: start, end: end, left: left, right: right, height: 1 + u:it_max(left.height, right.height), max_end: u:it_max(end, u:it_max(if left.empty {
+          end
+        } else {
+          left.max_end
+        }, if right.empty {
+          end
+        } else {
+          right.max_end
+        }))}
+}
+def u:it_factor(tree) {
+  "Return a node's left-minus-right AVL height balance.";
+  if tree.empty {
+    0
+  } else {
+    tree.left.height - tree.right.height
+  }
+}
+def u:it_rotate_right(top) {
+  "Apply an immutable right rotation and recompute interval caches.";
+  pivot = top.left;
+  u:it_make(pivot.start, pivot.end, pivot.left, u:it_make(top.start, top.end, pivot.right, top.right))
+}
+def u:it_rotate_left(top) {
+  "Apply an immutable left rotation and recompute interval caches.";
+  pivot = top.right;
+  u:it_make(pivot.start, pivot.end, u:it_make(top.start, top.end, top.left, pivot.left), pivot.right)
+}
+def u:it_rebalance(tree, inserted_start) {
+  "Restore AVL balance after inserting an interval start.";
+  balance = u:it_factor(tree);
+  if gt(balance, 1) {
+    if lt(inserted_start, tree.left.start) { u:it_rotate_right(tree) } else { u:it_rotate_right(u:it_make(tree.start, tree.end, u:it_rotate_left(tree.left), tree.right)) }
+  } else {
+    if lt(balance, -1) {
+      if gt(inserted_start, tree.right.start) { u:it_rotate_left(tree) } else { u:it_rotate_left(u:it_make(tree.start, tree.end, tree.left, u:it_rotate_right(tree.right))) }
+    } else {
+      tree
+    }
+  }
+}
+def u:it_interval_valid(start, end) {
+  "Return one for scalar nonempty half-open interval endpoints.";
+  if eq(rank(start), 0) * eq(rank(end), 0) {
+    lt(start, end)
+  } else {
+    0
+  }
+}
+def u:it_insert(tree, start, end) {
+  "Insert persistently, replacing the endpoint when an existing start is repeated.";
+  if u:it_interval_valid(start, end) {
+    if tree.empty {
+      ok(u:it_make(start, end, u:it_empty(), u:it_empty()))
+    } else {
+      if lt(start, tree.start) {
+        ok(u:it_rebalance(u:it_make(tree.start, tree.end, u:it_insert(tree.left, start, end)?, tree.right), start))
+      } else {
+        if gt(start, tree.start) {
+          ok(u:it_rebalance(u:it_make(tree.start, tree.end, tree.left, u:it_insert(tree.right, start, end)?), start))
+        } else {
+          ok(u:it_make(start, end, tree.left, tree.right))
+        }
+      }
+    }
+  } else {
+    err({kind: "interval", message: "interval endpoints must be scalars with start less than end"})
+  }
+}
+def u:it_none() {
+  "Return the no-overlap search value.";
+  {found: 0, start: 0, end: 0}
+}
+def u:it_overlap(a_start, a_end, b_start, b_end) {
+  "Return one when two half-open intervals overlap; touching endpoints do not.";
+  lt(a_start, b_end) * lt(b_start, a_end)
+}
+def u:it_find_steps(tree, start, end) {
+  "Find one overlap using cached maximum endpoints and BST start pruning.";
+  if tree.empty { u:it_none() } else {
+    if 1 - gt(tree.max_end, start) { u:it_none() } else {
+      left_hit = if tree.left.empty { u:it_none() } else {
+        if gt(tree.left.max_end, start) { u:it_find_steps(tree.left, start, end) } else { u:it_none() }
+      };
+      if left_hit.found {
+        left_hit
+      } else {
+        if u:it_overlap(tree.start, tree.end, start, end) {
+          {found: 1, start: tree.start, end: tree.end}
+        } else {
+          if lt(tree.start, end) { u:it_find_steps(tree.right, start, end) } else { u:it_none() }
+        }
+      }
+    }
+  }
+}
+def u:it_find_overlap(tree, start, end) {
+  "Return one overlapping stored interval or a found-zero value.";
+  if u:it_interval_valid(start, end) {
+    ok(u:it_find_steps(tree, start, end))
+  } else {
+    err({kind: "interval", message: "query endpoints must be scalars with start less than end"})
+  }
+}
+def u:it_audit(tree) {
+  "Audit interval validity, start ordering, AVL balance, height, and maximum-end caches.";
+  if tree.empty {
+    {ok_flag: eq(tree.height, 0), empty_flag: 1, minimum: 0, maximum: 0, height: 0, max_end: 0}
+  } else {
+    left = u:it_audit(tree.left);
+    right = u:it_audit(tree.right);
+    expected_height = 1 + u:it_max(left.height, right.height);
+    expected_max = u:it_max(tree.end, u:it_max(if left.empty_flag {
+          tree.end
+        } else {
+          left.max_end
+        }, if right.empty_flag {
+          tree.end
+        } else {
+          right.max_end
+        }));
+    left_order = if left.empty_flag {
+      1
+    } else {
+      lt(left.maximum, tree.start)
+    };
+    right_order = if right.empty_flag {
+      1
+    } else {
+      gt(right.minimum, tree.start)
+    };
+    {ok_flag: left.ok_flag * right.ok_flag * u:it_interval_valid(tree.start, tree.end) * left_order * right_order * eq(tree.height, expected_height) * eq(tree.max_end, expected_max) * (1 - gt(abs(left.height - right.height), 1)), empty_flag: 0, minimum: if left.empty_flag {
+        tree.start
+      } else {
+        left.minimum
+      }, maximum: if right.empty_flag {
+        tree.start
+      } else {
+        right.maximum
+      }, height: expected_height, max_end: expected_max}
+  }
+}
+def u:it_valid(tree) {
+  "Return one when every interval-tree invariant holds.";
+  u:it_audit(tree).ok_flag
+}
+def u:it_add_rows(tree, starts, ends, index) {
+  "Recursively insert parallel interval vectors from index onward.";
+  if eq(index, tally(starts)) {
+    ok(tree)
+  } else { u:it_add_rows(u:it_insert(tree, take(starts, 0, index), take(ends, 0, index))?, starts, ends, index + 1) }
+}
+def u:it_from_vectors(starts, ends) {
+  "Build an interval tree from equal-length numeric vectors.";
+  if eq(rank(starts), 1) * eq(rank(ends), 1) * eq(tally(starts), tally(ends)) { u:it_add_rows(u:it_empty(), starts, ends, 0) } else {
+    err({kind: "intervals", message: "starts and ends must be equal-length vectors"})
+  }
+}

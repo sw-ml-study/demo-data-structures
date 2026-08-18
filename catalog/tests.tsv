@@ -20,3 +20,15 @@ map-hash-tombstones	tests/maps/test_hash_tombstones.mlpl	open-address-hash-map	d
 map-hash-resize	tests/maps/test_hash_resize.mlpl	resizable-open-address-map	load-factor-resize-rehash	yes	0	0	current	constrained
 map-separate-chaining	tests/maps/test_separate_chaining.mlpl	separate-chaining-hash-map	indexed-chain-insert-delete-resize	yes	0	0	current	constrained
 cache-numeric-lru	tests/caches/test_numeric_lru.mlpl	numeric-lru-cache	lookup-promote-evict	yes	0	0	current	constrained
+tree-representations	tests/trees/test_binary_tree_representations.mlpl	binary-tree	representation-conversion-traversals	yes	0	0	current	constrained
+tree-persistent-bst	tests/trees/test_persistent_bst.mlpl	persistent-bst-map	search-path-rebuilding-insert	yes	0	0	current	constrained
+tree-persistent-bst-delete	tests/trees/test_persistent_bst_delete.mlpl	persistent-bst-map	immutable-structural-delete	yes	0	0	current	constrained
+tree-persistent-avl	tests/trees/test_persistent_avl.mlpl	persistent-avl-map	cached-height-insert-rotations	yes	0	0	current	constrained
+tree-order-statistic-avl	tests/trees/test_order_statistic_avl.mlpl	persistent-order-statistic-avl	cached-size-rank-select-and-validation	yes	0	0	current	constrained
+tree-interval-conflicts	tests/trees/test_interval_tree.mlpl	persistent-augmented-interval-avl	cached-maximum-overlap-search-and-validation	yes	0	0	current	constrained
+tree-segment-range-analytics	tests/trees/test_segment_tree.mlpl	persistent-segment-tree	point-update-range-sum-minimum-validation	yes	0	0	current	constrained
+tree-fenwick-cumulative	tests/trees/test_fenwick_tree.mlpl	immutable-fenwick-tree	point-add-prefix-range-sum-validation	yes	0	0	current	constrained
+tree-numeric-digit-trie	tests/trees/test_numeric_digit_trie.mlpl	indexed-decimal-digit-trie	insert-exact-longest-prefix-validation	yes	0	0	current	constrained
+tree-btree-page-index	tests/trees/test_btree_page_index.mlpl	immutable-order-three-btree	search-insert-split-and-validation	yes	0	0	current	constrained
+tree-btree-page-deletion	tests/trees/test_btree_page_deletion.mlpl	immutable-order-three-btree	delete-borrow-merge-root-contraction-validation	yes	0	0	current	constrained
+tree-expression	tests/trees/test_expression_tree.mlpl	tagged-expression-tree	closed-composite-interpreter	yes	0	0	current	constrained

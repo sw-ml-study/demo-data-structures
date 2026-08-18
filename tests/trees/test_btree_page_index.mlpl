@@ -1,0 +1,30 @@
+# Native tests for immutable order-three B-tree insertion and search.
+include "src/trees/btree_page_index.mlpl";
+
+@test {name: "B-tree leaf splits internal splits and root growth", tags: ["trees", "btree", "native"]}
+def u:test_bt_splits() { "Verify ordered and adversarial insertion exercise leaf, internal, and root splits.";
+  ordered = u:bt_from_vectors([1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 20, 30, 40, 50, 60, 70, 80, 90])?;
+  adversarial = u:bt_from_vectors([50, 10, 90, 30, 70, 20, 80, 40, 60], [5, 1, 9, 3, 7, 2, 8, 4, 6])?;
+  u:assert_true(u:bt_valid(ordered) * u:bt_valid(adversarial), "split tree invalid")?; u:assert_eq(u:bt_inorder(ordered), range(9) + 1, "ordered insertion keys failed")?; u:assert_eq(u:bt_inorder(adversarial), [10, 20, 30, 40, 50, 60, 70, 80, 90], "adversarial insertion keys failed")?;
+  u:assert_true(gt(u:bt_audit(ordered).depth, 2), "ordered insertion did not grow root/internal levels")?; u:assert_eq(u:bt_lookup(adversarial, 70)?, 7, "lookup after splits failed")?;
+  ok({test: "btree-splits", cases: 5})
+}
+
+@test {name: "B-tree persistence duplicates and signed entries", tags: ["trees", "persistent", "native"]}
+def u:test_bt_persistence() { "Verify empty/singleton, duplicate replacement, signed keys, zero values, misses, and retained roots.";
+  empty = u:bt_empty(); u:assert_true(u:bt_valid(empty), "empty invalid")?; u:assert_err(u:bt_lookup(empty, 1), "empty lookup should miss")?;
+  one = u:bt_insert(empty, 0, 0)?; u:assert_eq(u:bt_lookup(one, 0)?, 0, "singleton zero failed")?;
+  snapshot = u:bt_from_vectors([-5, 0, 10, 20], [50, 0, 100, 200])?; live = u:bt_insert(u:bt_insert(snapshot, 15, 150)?, 10, 999)?;
+  u:assert_true(u:bt_valid(snapshot) * u:bt_valid(live), "persistent version invalid")?; u:assert_eq(u:bt_lookup(snapshot, 10)?, 100, "replacement changed snapshot")?; u:assert_eq(u:bt_lookup(live, 10)?, 999, "replacement failed")?; u:assert_eq(u:bt_inorder(snapshot), [-5, 0, 10, 20], "later insertion changed snapshot")?; u:assert_err(u:bt_lookup(live, 99), "missing lookup should fail")?; u:assert_err(u:bt_insert(live, [1], 2), "vector key should fail")?; u:assert_err(u:bt_lookup(live, [1]), "vector lookup should fail")?;
+  ok({test: "btree-persistence", cases: 11})
+}
+
+@test {name: "B-tree malformed page invariants", tags: ["trees", "validation", "native"]}
+def u:test_bt_validation() { "Verify key count, ordering, child range, child presence, and uniform leaf-depth corruption.";
+  leaf = u:bt_leaf2(10, 1, 20, 2); bad_count = {empty: 0, leaf: 1, count: 3, key1: 10, value1: 1, key2: 20, value2: 2}; bad_order = u:bt_leaf2(20, 2, 10, 1);
+  good = u:bt_branch1(20, 2, u:bt_leaf1(10, 1), u:bt_leaf1(30, 3)); bad_range = u:bt_branch1(20, 2, u:bt_leaf1(25, 1), u:bt_leaf1(30, 3)); bad_missing = u:bt_branch1(20, 2, u:bt_empty(), u:bt_leaf1(30, 3));
+  deep_left = u:bt_branch1(10, 1, u:bt_leaf1(5, 5), u:bt_leaf1(15, 15)); bad_depth = u:bt_branch1(20, 2, deep_left, u:bt_leaf1(30, 3));
+  u:assert_true(u:bt_valid(leaf) * u:bt_valid(good), "valid page rejected")?; u:assert_false(u:bt_valid(bad_count), "bad count passed")?; u:assert_false(u:bt_valid(bad_order), "bad ordering passed")?; u:assert_false(u:bt_valid(bad_range), "bad child range passed")?; u:assert_false(u:bt_valid(bad_missing), "missing child passed")?; u:assert_false(u:bt_valid(bad_depth), "unequal leaf depth passed")?; u:assert_err(u:bt_from_vectors([1, 2], [3]), "mismatched vectors should fail")?;
+  ok({test: "btree-validation", cases: 7})
+}
+u:run_registered_tests()

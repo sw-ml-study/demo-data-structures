@@ -1,0 +1,364 @@
+# Immutable order-three B-tree (2-3 tree): one or two keys per nonempty page.
+def u:bt_empty() {
+  "Create an empty B-tree index.";
+  {empty: 1}
+}
+def u:bt_leaf1(key, value) {
+  "Create a one-key leaf page.";
+  {empty: 0, leaf: 1, count: 1, key1: key, value1: value, key2: 0, value2: 0}
+}
+def u:bt_leaf2(key1, value1, key2, value2) {
+  "Create a sorted two-key leaf page.";
+  {empty: 0, leaf: 1, count: 2, key1: key1, value1: value1, key2: key2, value2: value2}
+}
+def u:bt_branch1(key, value, child0, child1) {
+  "Create a one-key internal page with two children.";
+  {empty: 0, leaf: 0, count: 1, key1: key, value1: value, key2: 0, value2: 0, child0: child0, child1: child1, child2: u:bt_empty()}
+}
+def u:bt_branch2(key1, value1, key2, value2, child0, child1, child2) {
+  "Create a sorted two-key internal page with three children.";
+  {empty: 0, leaf: 0, count: 2, key1: key1, value1: value1, key2: key2, value2: value2, child0: child0, child1: child1, child2: child2}
+}
+def u:bt_done(tree) {
+  "Wrap an insertion result that did not split its page.";
+  {split: 0, tree: tree, key: 0, value: 0, left: u:bt_empty(), right: u:bt_empty()}
+}
+def u:bt_split(key, value, left, right) {
+  "Wrap a page split with its promoted key/value and two replacement pages.";
+  {split: 1, tree: u:bt_empty(), key: key, value: value, left: left, right: right}
+}
+def u:bt_insert_leaf(page, key, value) {
+  "Insert into a leaf, returning either a page or a median promotion.";
+  if eq(page.count, 1) {
+    if lt(key, page.key1) { u:bt_done(u:bt_leaf2(key, value, page.key1, page.value1)) } else { u:bt_done(u:bt_leaf2(page.key1, page.value1, key, value)) }
+  } else {
+    if lt(key, page.key1) { u:bt_split(page.key1, page.value1, u:bt_leaf1(key, value), u:bt_leaf1(page.key2, page.value2)) } else {
+      if gt(key, page.key2) { u:bt_split(page.key2, page.value2, u:bt_leaf1(page.key1, page.value1), u:bt_leaf1(key, value)) } else { u:bt_split(key, value, u:bt_leaf1(page.key1, page.value1), u:bt_leaf1(page.key2, page.value2)) }
+    }
+  }
+}
+def u:bt_replace(page, key, value) {
+  "Replace a duplicate key's value without changing page shape.";
+  if eq(key, page.key1) {
+    if page.leaf {
+      if eq(page.count, 1) { u:bt_leaf1(key, value) } else { u:bt_leaf2(key, value, page.key2, page.value2) }
+    } else {
+      if eq(page.count, 1) { u:bt_branch1(key, value, page.child0, page.child1) } else { u:bt_branch2(key, value, page.key2, page.value2, page.child0, page.child1, page.child2) }
+    }
+  } else {
+    if page.leaf { u:bt_leaf2(page.key1, page.value1, key, value) } else { u:bt_branch2(page.key1, page.value1, key, value, page.child0, page.child1, page.child2) }
+  }
+}
+def u:bt_insert_internal1(page, key, value) {
+  "Insert below a one-key internal page and absorb any child split.";
+  if lt(key, page.key1) {
+    child = u:bt_insert_page(page.child0, key, value);
+    if child.split { u:bt_done(u:bt_branch2(child.key, child.value, page.key1, page.value1, child.left, child.right, page.child1)) } else { u:bt_done(u:bt_branch1(page.key1, page.value1, child.tree, page.child1)) }
+  } else {
+    child = u:bt_insert_page(page.child1, key, value);
+    if child.split { u:bt_done(u:bt_branch2(page.key1, page.value1, child.key, child.value, page.child0, child.left, child.right)) } else { u:bt_done(u:bt_branch1(page.key1, page.value1, page.child0, child.tree)) }
+  }
+}
+def u:bt_insert_internal2(page, key, value) {
+  "Insert below a full internal page, splitting it if its selected child splits.";
+  if lt(key, page.key1) {
+    child = u:bt_insert_page(page.child0, key, value);
+    if child.split { u:bt_split(page.key1, page.value1, u:bt_branch1(child.key, child.value, child.left, child.right), u:bt_branch1(page.key2, page.value2, page.child1, page.child2)) } else { u:bt_done(u:bt_branch2(page.key1, page.value1, page.key2, page.value2, child.tree, page.child1, page.child2)) }
+  } else {
+    if gt(key, page.key2) {
+      child = u:bt_insert_page(page.child2, key, value);
+      if child.split { u:bt_split(page.key2, page.value2, u:bt_branch1(page.key1, page.value1, page.child0, page.child1), u:bt_branch1(child.key, child.value, child.left, child.right)) } else { u:bt_done(u:bt_branch2(page.key1, page.value1, page.key2, page.value2, page.child0, page.child1, child.tree)) }
+    } else {
+      child = u:bt_insert_page(page.child1, key, value);
+      if child.split { u:bt_split(child.key, child.value, u:bt_branch1(page.key1, page.value1, page.child0, child.left), u:bt_branch1(page.key2, page.value2, child.right, page.child2)) } else { u:bt_done(u:bt_branch2(page.key1, page.value1, page.key2, page.value2, page.child0, child.tree, page.child2)) }
+    }
+  }
+}
+def u:bt_insert_page(page, key, value) {
+  "Insert recursively into one page, propagating a split upward.";
+  if page.empty { u:bt_done(u:bt_leaf1(key, value)) } else {
+    if eq(key, page.key1) + (eq(page.count, 2) * eq(key, page.key2)) { u:bt_done(u:bt_replace(page, key, value)) } else {
+      if page.leaf { u:bt_insert_leaf(page, key, value) } else {
+        if eq(page.count, 1) { u:bt_insert_internal1(page, key, value) } else { u:bt_insert_internal2(page, key, value) }
+      }
+    }
+  }
+}
+def u:bt_insert(tree, key, value) {
+  "Persistently insert a scalar key/value, replacing duplicate values and growing the root when split.";
+  if eq(rank(key), 0) * eq(rank(value), 0) {
+    result = u:bt_insert_page(tree, key, value);
+    if result.split {
+      ok(u:bt_branch1(result.key, result.value, result.left, result.right))
+    } else {
+      ok(result.tree)
+    }
+  } else {
+    err({kind: "entry", message: "B-tree keys and values must be numeric scalars"})
+  }
+}
+def u:bt_lookup(tree, key) {
+  "Search logarithmically by page and return the matching numeric value.";
+  if eq(rank(key), 0) {
+    if tree.empty {
+      err({kind: "missing", message: "B-tree key is absent"})
+    } else {
+      if eq(key, tree.key1) {
+        ok(tree.value1)
+      } else {
+        if eq(tree.count, 2) * eq(key, tree.key2) {
+          ok(tree.value2)
+        } else {
+          if tree.leaf {
+            err({kind: "missing", message: "B-tree key is absent"})
+          } else {
+            if lt(key, tree.key1) { u:bt_lookup(tree.child0, key) } else {
+              if eq(tree.count, 1) + lt(key, tree.key2) { u:bt_lookup(tree.child1, key) } else { u:bt_lookup(tree.child2, key) }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    err({kind: "key", message: "lookup key must be a numeric scalar"})
+  }
+}
+def u:bt_inorder(tree) {
+  "Return all B-tree keys in ascending order.";
+  if tree.empty {
+    fill([0], 0)
+  } else {
+    if tree.leaf {
+      if eq(tree.count, 1) {
+        [tree.key1]
+      } else {
+        [tree.key1, tree.key2]
+      }
+    } else {
+      if eq(tree.count, 1) {
+        concat(u:bt_inorder(tree.child0), concat(tree.key1, u:bt_inorder(tree.child1)))
+      } else {
+        concat(u:bt_inorder(tree.child0), concat(tree.key1, concat(u:bt_inorder(tree.child1), concat(tree.key2, u:bt_inorder(tree.child2)))))
+      }
+    }
+  }
+}
+def u:bt_add_values(tree, keys, values, index) {
+  "Recursively insert parallel key/value vectors from index onward.";
+  if eq(index, tally(keys)) {
+    ok(tree)
+  } else { u:bt_add_values(u:bt_insert(tree, take(keys, 0, index), take(values, 0, index))?, keys, values, index + 1) }
+}
+def u:bt_from_vectors(keys, values) {
+  "Build a B-tree from equal-length numeric key/value vectors.";
+  if eq(rank(keys), 1) * eq(rank(values), 1) * eq(tally(keys), tally(values)) { u:bt_add_values(u:bt_empty(), keys, values, 0) } else {
+    err({kind: "entries", message: "keys and values must be equal-length vectors"})
+  }
+}
+def u:bt_audit(tree) {
+  "Audit page key counts, ordering, child ranges, and uniform leaf depth.";
+  if tree.empty {
+    {ok_flag: 1, empty_flag: 1, minimum: 0, maximum: 0, depth: 0, keys: 0}
+  } else {
+    count_ok = eq(tree.count, 1) + eq(tree.count, 2);
+    key_ok = if eq(tree.count, 2) {
+      lt(tree.key1, tree.key2)
+    } else {
+      1
+    };
+    if tree.leaf {
+      {ok_flag: count_ok * key_ok, empty_flag: 0, minimum: tree.key1, maximum: if eq(tree.count, 2) {
+          tree.key2
+        } else {
+          tree.key1
+        }, depth: 1, keys: tree.count}
+    } else {
+      left = u:bt_audit(tree.child0);
+      middle = u:bt_audit(tree.child1);
+      right = if eq(tree.count, 2) { u:bt_audit(tree.child2) } else {
+        {ok_flag: tree.child2.empty, empty_flag: 1, minimum: 0, maximum: 0, depth: middle.depth, keys: 0}
+      };
+      children_present = (1 - left.empty_flag) * (1 - middle.empty_flag) * if eq(tree.count, 2) {
+        1 - right.empty_flag
+      } else {
+        1
+      };
+      ranges = lt(left.maximum, tree.key1) * gt(middle.minimum, tree.key1) * if eq(tree.count, 2) {
+        lt(middle.maximum, tree.key2) * gt(right.minimum, tree.key2)
+      } else {
+        1
+      };
+      depths = eq(left.depth, middle.depth) * if eq(tree.count, 2) {
+        eq(middle.depth, right.depth)
+      } else {
+        1
+      };
+      {ok_flag: count_ok * key_ok * left.ok_flag * middle.ok_flag * right.ok_flag * children_present * ranges * depths, empty_flag: 0, minimum: left.minimum, maximum: if eq(tree.count, 2) {
+          right.maximum
+        } else {
+          middle.maximum
+        }, depth: left.depth + 1, keys: left.keys + middle.keys + right.keys + tree.count}
+    }
+  }
+}
+def u:bt_valid(tree) {
+  "Return one when the order-three B-tree page and depth invariants hold.";
+  u:bt_audit(tree).ok_flag
+}
+def u:bt_delete_done(tree, found) {
+  "Wrap a deletion result without page underflow.";
+  {underflow: 0, found: found, tree: tree}
+}
+def u:bt_delete_under(tree) {
+  "Wrap an underflow carrying the sole remaining child, or empty for a leaf.";
+  {underflow: 1, found: 1, tree: tree}
+}
+def u:bt_max_entry(page) {
+  "Return the greatest key/value entry in a nonempty subtree.";
+  if page.leaf {
+    if eq(page.count, 2) {
+      {key: page.key2, value: page.value2}
+    } else {
+      {key: page.key1, value: page.value1}
+    }
+  } else {
+    if eq(page.count, 2) { u:bt_max_entry(page.child2) } else { u:bt_max_entry(page.child1) }
+  }
+}
+def u:bt_under_left_merge(separator_key, separator_value, deficient, sibling) {
+  "Merge a deficient left child, separator, and one-key right sibling.";
+  if sibling.leaf { u:bt_leaf2(separator_key, separator_value, sibling.key1, sibling.value1) } else { u:bt_branch2(separator_key, separator_value, sibling.key1, sibling.value1, deficient, sibling.child0, sibling.child1) }
+}
+def u:bt_under_right_merge(sibling, separator_key, separator_value, deficient) {
+  "Merge a one-key left sibling, separator, and deficient right child.";
+  if sibling.leaf { u:bt_leaf2(sibling.key1, sibling.value1, separator_key, separator_value) } else { u:bt_branch2(sibling.key1, sibling.value1, separator_key, separator_value, sibling.child0, sibling.child1, deficient) }
+}
+def u:bt_repair_one_left(page, child) {
+  "Repair underflow in child zero of a one-key internal page.";
+  sibling = page.child1;
+  if eq(sibling.count, 2) {
+    if sibling.leaf { u:bt_delete_done(u:bt_branch1(sibling.key1, sibling.value1, u:bt_leaf1(page.key1, page.value1), u:bt_leaf1(sibling.key2, sibling.value2)), 1) } else { u:bt_delete_done(u:bt_branch1(sibling.key1, sibling.value1, u:bt_branch1(page.key1, page.value1, child.tree, sibling.child0), u:bt_branch1(sibling.key2, sibling.value2, sibling.child1, sibling.child2)), 1) }
+  } else { u:bt_delete_under(u:bt_under_left_merge(page.key1, page.value1, child.tree, sibling)) }
+}
+def u:bt_repair_one_right(page, child) {
+  "Repair underflow in child one of a one-key internal page.";
+  sibling = page.child0;
+  if eq(sibling.count, 2) {
+    if sibling.leaf { u:bt_delete_done(u:bt_branch1(sibling.key2, sibling.value2, u:bt_leaf1(sibling.key1, sibling.value1), u:bt_leaf1(page.key1, page.value1)), 1) } else { u:bt_delete_done(u:bt_branch1(sibling.key2, sibling.value2, u:bt_branch1(sibling.key1, sibling.value1, sibling.child0, sibling.child1), u:bt_branch1(page.key1, page.value1, sibling.child2, child.tree)), 1) }
+  } else { u:bt_delete_under(u:bt_under_right_merge(sibling, page.key1, page.value1, child.tree)) }
+}
+def u:bt_repair_two_left(page, child) {
+  "Repair underflow in child zero of a two-key page by borrow or left merge.";
+  sibling = page.child1;
+  if eq(sibling.count, 2) {
+    if sibling.leaf { u:bt_delete_done(u:bt_branch2(sibling.key1, sibling.value1, page.key2, page.value2, u:bt_leaf1(page.key1, page.value1), u:bt_leaf1(sibling.key2, sibling.value2), page.child2), 1) } else { u:bt_delete_done(u:bt_branch2(sibling.key1, sibling.value1, page.key2, page.value2, u:bt_branch1(page.key1, page.value1, child.tree, sibling.child0), u:bt_branch1(sibling.key2, sibling.value2, sibling.child1, sibling.child2), page.child2), 1) }
+  } else { u:bt_delete_done(u:bt_branch1(page.key2, page.value2, u:bt_under_left_merge(page.key1, page.value1, child.tree, sibling), page.child2), 1) }
+}
+def u:bt_repair_two_right(page, child) {
+  "Repair underflow in child two of a two-key page by borrow or right merge.";
+  sibling = page.child1;
+  if eq(sibling.count, 2) {
+    if sibling.leaf { u:bt_delete_done(u:bt_branch2(page.key1, page.value1, sibling.key2, sibling.value2, page.child0, u:bt_leaf1(sibling.key1, sibling.value1), u:bt_leaf1(page.key2, page.value2)), 1) } else { u:bt_delete_done(u:bt_branch2(page.key1, page.value1, sibling.key2, sibling.value2, page.child0, u:bt_branch1(sibling.key1, sibling.value1, sibling.child0, sibling.child1), u:bt_branch1(page.key2, page.value2, sibling.child2, child.tree)), 1) }
+  } else { u:bt_delete_done(u:bt_branch1(page.key1, page.value1, page.child0, u:bt_under_right_merge(sibling, page.key2, page.value2, child.tree)), 1) }
+}
+def u:bt_repair_two_middle(page, child) {
+  "Repair underflow in the middle child, preferring a left borrow then right borrow then merge.";
+  left = page.child0;
+  right = page.child2;
+  if eq(left.count, 2) {
+    if left.leaf { u:bt_delete_done(u:bt_branch2(left.key2, left.value2, page.key2, page.value2, u:bt_leaf1(left.key1, left.value1), u:bt_leaf1(page.key1, page.value1), right), 1) } else { u:bt_delete_done(u:bt_branch2(left.key2, left.value2, page.key2, page.value2, u:bt_branch1(left.key1, left.value1, left.child0, left.child1), u:bt_branch1(page.key1, page.value1, left.child2, child.tree), right), 1) }
+  } else {
+    if eq(right.count, 2) {
+      if right.leaf { u:bt_delete_done(u:bt_branch2(page.key1, page.value1, right.key1, right.value1, left, u:bt_leaf1(page.key2, page.value2), u:bt_leaf1(right.key2, right.value2)), 1) } else { u:bt_delete_done(u:bt_branch2(page.key1, page.value1, right.key1, right.value1, left, u:bt_branch1(page.key2, page.value2, child.tree, right.child0), u:bt_branch1(right.key2, right.value2, right.child1, right.child2)), 1) }
+    } else { u:bt_delete_done(u:bt_branch1(page.key2, page.value2, u:bt_under_right_merge(left, page.key1, page.value1, child.tree), right), 1) }
+  }
+}
+def u:bt_delete_leaf(page, key) {
+  "Delete a present key from a leaf and report underflow when its sole key is removed.";
+  if eq(page.count, 1) { u:bt_delete_under(u:bt_empty()) } else {
+    if eq(key, page.key1) { u:bt_delete_done(u:bt_leaf1(page.key2, page.value2), 1) } else { u:bt_delete_done(u:bt_leaf1(page.key1, page.value1), 1) }
+  }
+}
+def u:bt_delete_child(page, position, key) {
+  "Delete below an internal page and invoke position-specific underflow repair.";
+  child_page = if eq(position, 0) {
+    page.child0
+  } else {
+    if eq(position, 1) {
+      page.child1
+    } else {
+      page.child2
+    }
+  };
+  child = u:bt_delete_page(child_page, key);
+  if 1 - child.found { u:bt_delete_done(page, 0) } else {
+    if child.underflow {
+      if eq(page.count, 1) {
+        if eq(position, 0) { u:bt_repair_one_left(page, child) } else { u:bt_repair_one_right(page, child) }
+      } else {
+        if eq(position, 0) { u:bt_repair_two_left(page, child) } else {
+          if eq(position, 1) { u:bt_repair_two_middle(page, child) } else { u:bt_repair_two_right(page, child) }
+        }
+      }
+    } else {
+      if eq(page.count, 1) {
+        if eq(position, 0) { u:bt_delete_done(u:bt_branch1(page.key1, page.value1, child.tree, page.child1), 1) } else { u:bt_delete_done(u:bt_branch1(page.key1, page.value1, page.child0, child.tree), 1) }
+      } else {
+        if eq(position, 0) { u:bt_delete_done(u:bt_branch2(page.key1, page.value1, page.key2, page.value2, child.tree, page.child1, page.child2), 1) } else {
+          if eq(position, 1) { u:bt_delete_done(u:bt_branch2(page.key1, page.value1, page.key2, page.value2, page.child0, child.tree, page.child2), 1) } else { u:bt_delete_done(u:bt_branch2(page.key1, page.value1, page.key2, page.value2, page.child0, page.child1, child.tree), 1) }
+        }
+      }
+    }
+  }
+}
+def u:bt_delete_internal_key(page, position) {
+  "Replace an internal key by its predecessor, then delete that predecessor with repair.";
+  source = if eq(position, 0) {
+    page.child0
+  } else {
+    page.child1
+  };
+  predecessor = u:bt_max_entry(source);
+  replaced = if eq(page.count, 1) { u:bt_branch1(predecessor.key, predecessor.value, page.child0, page.child1) } else {
+    if eq(position, 0) { u:bt_branch2(predecessor.key, predecessor.value, page.key2, page.value2, page.child0, page.child1, page.child2) } else { u:bt_branch2(page.key1, page.value1, predecessor.key, predecessor.value, page.child0, page.child1, page.child2) }
+  };
+  u:bt_delete_child(replaced, position, predecessor.key)
+}
+def u:bt_delete_page(page, key) {
+  "Delete a key recursively while propagating and repairing page underflow.";
+  if page.empty { u:bt_delete_done(page, 0) } else {
+    if eq(key, page.key1) {
+      if page.leaf { u:bt_delete_leaf(page, key) } else { u:bt_delete_internal_key(page, 0) }
+    } else {
+      if eq(page.count, 2) * eq(key, page.key2) {
+        if page.leaf { u:bt_delete_leaf(page, key) } else { u:bt_delete_internal_key(page, 1) }
+      } else {
+        if page.leaf { u:bt_delete_done(page, 0) } else {
+          position = if lt(key, page.key1) {
+            0
+          } else {
+            if eq(page.count, 1) + lt(key, page.key2) {
+              1
+            } else {
+              2
+            }
+          };
+          u:bt_delete_child(page, position, key)
+        }
+      }
+    }
+  }
+}
+def u:bt_delete(tree, key) {
+  "Persistently delete a scalar key, contracting an underflowed root and erroring when absent.";
+  if eq(rank(key), 0) {
+    result = u:bt_delete_page(tree, key);
+    if result.found {
+      ok(result.tree)
+    } else {
+      err({kind: "missing", message: "cannot delete absent B-tree key"})
+    }
+  } else {
+    err({kind: "key", message: "delete key must be a numeric scalar"})
+  }
+}

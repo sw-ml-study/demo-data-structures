@@ -1,0 +1,26 @@
+# Mini-app: add and revise numeric reservations while retaining an audit snapshot.
+#
+# The immutable binary search tree maps a numeric minute to a numeric room ID.
+# Insertion rebuilds only the logical search path; duplicate minutes replace
+# their value without adding a node.
+#
+# data_structure: persistent binary search tree map
+# algorithm: recursive search, path-rebuilding insert, inorder traversal
+# representation: nested immutable records with an empty sentinel
+# dynamic_size: yes
+# logical_complexity: search/insert O(height), logical new nodes O(height)
+# current_copy_complexity: runtime record cloning may copy more than the path
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: runtime structural sharing and modules for tree helpers
+
+include "../../src/trees/persistent_reservation_index.mlpl";
+
+empty = u:empty_bst();
+morning = u:insert(u:insert(u:insert(empty, 720, 12), 600, 0), 840, 18);
+with_lunch = u:insert(morning, 780, 15);
+current = u:insert(with_lunch, 720, 14);
+print("Problem: add a lunch reservation and revise room 12 to 14 without changing the morning audit snapshot.");
+print("Solution: persistent BST insertion rebuilds the search path and retains prior roots.");
+{current_minutes: u:inorder_keys(current), current_room_720: unwrap(u:lookup(current, 720)), lunch_room: unwrap(u:lookup(current, 780)), stored_zero_room: unwrap(u:lookup(current, 600)), morning_room_720: unwrap(u:lookup(morning, 720)), current_size: u:size(current), morning_size: u:size(morning)}

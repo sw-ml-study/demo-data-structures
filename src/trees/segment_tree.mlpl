@@ -1,0 +1,135 @@
+# Immutable segment tree over zero-based half-open index ranges [start, end).
+def u:st_min(a, b) {
+  "Return the lower numeric scalar.";
+  if lt(a, b) {
+    a
+  } else {
+    b
+  }
+}
+def u:st_empty() {
+  "Create the empty segment-tree value accepted for an empty vector.";
+  {empty: 1, start: 0, end: 0, count: 0, sum: 0, minimum: 0}
+}
+def u:st_leaf(index, value) {
+  "Create a one-element segment-tree leaf.";
+  {empty: 0, leaf: 1, start: index, end: index + 1, count: 1, sum: value, minimum: value}
+}
+def u:st_branch(left, right) {
+  "Create a branch whose sum and minimum are derived from adjacent children.";
+  {empty: 0, leaf: 0, start: left.start, end: right.end, count: left.count + right.count, sum: left.sum + right.sum, minimum: u:st_min(left.minimum, right.minimum), left: left, right: right}
+}
+def u:st_build_range(values, start, end) {
+  "Recursively build the tree for values in half-open range start through end.";
+  if eq(end - start, 1) { u:st_leaf(start, take(values, 0, start)) } else {
+    middle = start + floor((end - start) / 2);
+    u:st_branch(u:st_build_range(values, start, middle), u:st_build_range(values, middle, end))
+  }
+}
+def u:st_build(values) {
+  "Build a segment tree from a numeric vector, returning the empty tree for empty input.";
+  if eq(rank(values), 1) {
+    if eq(tally(values), 0) {
+      ok(u:st_empty())
+    } else {
+      ok(u:st_build_range(values, 0, tally(values)))
+    }
+  } else {
+    err({kind: "values", message: "segment-tree input must be a vector"})
+  }
+}
+def u:st_query_none() {
+  "Return the identity aggregate used for a disjoint query branch.";
+  {count: 0, sum: 0, has_minimum: 0, minimum: 0}
+}
+def u:st_query_all(tree) {
+  "Return a nonempty node's cached aggregate as a query result.";
+  {count: tree.count, sum: tree.sum, has_minimum: 1, minimum: tree.minimum}
+}
+def u:st_combine(a, b) {
+  "Combine two query aggregates while preserving the empty minimum identity.";
+  if 1 - a.has_minimum {
+    b
+  } else {
+    if 1 - b.has_minimum {
+      a
+    } else {
+      {count: a.count + b.count, sum: a.sum + b.sum, has_minimum: 1, minimum: u:st_min(a.minimum, b.minimum)}
+    }
+  }
+}
+def u:st_query_steps(tree, start, end) {
+  "Recursively aggregate a half-open range, returning identity for disjoint nodes.";
+  if tree.empty { u:st_query_none() } else {
+    if (1 - lt(tree.start, end)) + (1 - lt(start, tree.end)) { u:st_query_none() } else {
+      if (1 - gt(start, tree.start)) * (1 - lt(end, tree.end)) { u:st_query_all(tree) } else { u:st_combine(u:st_query_steps(tree.left, start, end), u:st_query_steps(tree.right, start, end)) }
+    }
+  }
+}
+def u:st_range_valid(tree, start, end) {
+  "Return one for scalar integer range endpoints contained by the tree extent.";
+  if eq(rank(start), 0) * eq(rank(end), 0) {
+    eq(start, floor(start)) * eq(end, floor(end)) * (1 - lt(start, 0)) * (1 - lt(end, start)) * (1 - gt(end, tree.count))
+  } else {
+    0
+  }
+}
+def u:st_query(tree, start, end) {
+  "Return sum/count/minimum metadata for a valid half-open range; empty ranges have no minimum.";
+  if u:st_range_valid(tree, start, end) {
+    ok(u:st_query_steps(tree, start, end))
+  } else {
+    err({kind: "range", message: "query must be an integer half-open range within the vector"})
+  }
+}
+def u:st_range_sum(tree, start, end) {
+  "Return the sum over a valid half-open range, including zero for an empty range.";
+  ok((u:st_query(tree, start, end)?).sum)
+}
+def u:st_range_minimum(tree, start, end) {
+  "Return the minimum over a nonempty valid half-open range.";
+  aggregate = u:st_query(tree, start, end)?;
+  if aggregate.has_minimum {
+    ok(aggregate.minimum)
+  } else {
+    err({kind: "range", message: "an empty range has no minimum"})
+  }
+}
+def u:st_update_steps(tree, index, value) {
+  "Persistently rebuild the root-to-leaf path for one point update.";
+  if tree.leaf { u:st_leaf(index, value) } else {
+    if lt(index, tree.left.end) { u:st_branch(u:st_update_steps(tree.left, index, value), tree.right) } else { u:st_branch(tree.left, u:st_update_steps(tree.right, index, value)) }
+  }
+}
+def u:st_update(tree, index, value) {
+  "Return a persistent point-updated tree for a valid scalar index and value.";
+  if eq(rank(index), 0) * eq(rank(value), 0) {
+    if eq(index, floor(index)) * (1 - lt(index, 0)) * lt(index, tree.count) {
+      ok(u:st_update_steps(tree, index, value))
+    } else {
+      err({kind: "index", message: "update index is outside the tree"})
+    }
+  } else {
+    err({kind: "update", message: "update index and value must be numeric scalars"})
+  }
+}
+def u:st_audit(tree) {
+  "Audit shape, extents, counts, and cached sum/minimum aggregates.";
+  if tree.empty {
+    {ok_flag: eq(tree.count, 0) * eq(tree.start, 0) * eq(tree.end, 0) * eq(tree.sum, 0), count: 0, sum: 0, minimum: 0, has_minimum: 0, start: 0, end: 0}
+  } else {
+    if tree.leaf {
+      {ok_flag: eq(tree.count, 1) * eq(tree.end, tree.start + 1) * eq(tree.sum, tree.minimum), count: 1, sum: tree.sum, minimum: tree.minimum, has_minimum: 1, start: tree.start, end: tree.end}
+    } else {
+      left = u:st_audit(tree.left);
+      right = u:st_audit(tree.right);
+      expected_sum = left.sum + right.sum;
+      expected_min = u:st_min(left.minimum, right.minimum);
+      {ok_flag: left.ok_flag * right.ok_flag * eq(left.end, right.start) * eq(tree.start, left.start) * eq(tree.end, right.end) * eq(tree.count, left.count + right.count) * eq(tree.sum, expected_sum) * eq(tree.minimum, expected_min), count: left.count + right.count, sum: expected_sum, minimum: expected_min, has_minimum: 1, start: left.start, end: right.end}
+    }
+  }
+}
+def u:st_valid(tree) {
+  "Return one when all segment-tree structural and aggregate invariants hold.";
+  u:st_audit(tree).ok_flag
+}

@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+demo_count=$(awk -F '\t' 'NR > 1 && $2 ~ /^demos\/trees\// { count++ } END { print count + 0 }' "$repo_root/catalog/demos.tsv")
+test_count=$(awk -F '\t' 'NR > 1 && $2 ~ /^tests\/trees\// { count++ } END { print count + 0 }' "$repo_root/catalog/tests.tsv")
+
+[ "$demo_count" -eq 12 ] || { echo "expected 12 tree/indexed demos, found $demo_count" >&2; exit 1; }
+[ "$test_count" -eq 12 ] || { echo "expected 12 tree/indexed tests, found $test_count" >&2; exit 1; }
+[ -f "$repo_root/MEMORY_DESIGN.md" ] || { echo "missing data-structure memory design" >&2; exit 1; }
+[ ! -d "$repo_root/demos/graphs" ] || { echo "graph algorithms must remain algorithm-owned" >&2; exit 1; }
+[ ! -d "$repo_root/demos/matrices" ] || { echo "sparse matrix algorithms must remain algorithm-owned" >&2; exit 1; }
+
+for kind in demos tests; do
+  awk -F '\t' 'NR > 1 && $2 ~ ("^" kind "/trees/") { print $2 }' kind="$kind" "$repo_root/catalog/$kind.tsv" |
+  while IFS= read -r path; do
+    [ -f "$repo_root/$path" ] || { echo "missing migrated file: $path" >&2; exit 1; }
+  done
+done
+
+echo "Tree/indexed migration contract passed."

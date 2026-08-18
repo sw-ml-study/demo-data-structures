@@ -1,0 +1,32 @@
+include "src/trees/persistent_reservation_index.mlpl";
+
+@test {name: "contract", tags: ["migration", "trees"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  empty = u:empty_bst();
+  u:assert_err(u:lookup(empty, 1), "empty lookup should miss")?;
+  u:assert_eq(u:inorder_keys(empty), fill([0], 0), "empty inorder failed")?;
+  singleton = u:insert(empty, -5, 0);
+  u:assert_eq(u:lookup(singleton, -5)?, 0, "negative key or stored zero failed")?;
+  u:assert_true(u:valid(singleton), "singleton invalid")?;
+  root = u:insert(empty, 4, 40); left = u:insert(root, 2, 20); balanced = u:insert(u:insert(u:insert(u:insert(left, 6, 60), 1, 10), 3, 30), 5, 50); balanced = u:insert(balanced, 7, 70);
+  u:assert_eq(u:inorder_keys(balanced), [1, 2, 3, 4, 5, 6, 7], "balanced inorder failed")?;
+  u:assert_eq(u:lookup(balanced, 5)?, 50, "successful search failed")?;
+  u:assert_err(u:lookup(balanced, 9), "missing search should fail")?;
+  u:assert_true(u:valid(balanced), "balanced invariant failed")?;
+  u:assert_eq(u:inorder_keys(root), [4], "later leaf inserts mutated old root")?;
+  internal_insert = u:insert(balanced, 0, -10);
+  u:assert_eq(u:inorder_keys(internal_insert), [0, 1, 2, 3, 4, 5, 6, 7], "path insertion failed")?;
+  u:assert_eq(u:inorder_keys(balanced), [1, 2, 3, 4, 5, 6, 7], "new path mutated retained tree")?;
+  revised = u:insert(balanced, 4, 400);
+  u:assert_eq(u:size(revised), 7, "duplicate policy added a node")?;
+  u:assert_eq(u:lookup(revised, 4)?, 400, "duplicate policy did not replace value")?;
+  u:assert_eq(u:lookup(balanced, 4)?, 40, "duplicate update mutated old value")?;
+  skewed = u:insert(u:insert(u:insert(empty, 1, 10), 2, 20), 3, 30);
+  u:assert_eq(u:inorder_keys(skewed), [1, 2, 3], "skewed tree failed")?;
+  u:assert_true(u:valid(skewed), "skewed invariant failed")?;
+  malformed = u:node(4, 40, u:node(9, 90, empty, empty), empty);
+  u:assert_false(u:valid(malformed), "ordering violation passed validation")?;
+  ok({test: "persistent-bst", cases: 17})
+}
+
+u:run_registered_tests()

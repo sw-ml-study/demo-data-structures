@@ -16,5 +16,6 @@ audit:
     ./tests/test-bootstrap
     ./tests/test-sequential-migration
     ./tests/test-associative-priority-migration
+    ./tests/test-tree-indexed-migration
 
 check: audit demos tests

@@ -1,0 +1,17 @@
+# Mini-app: revise one day's shipments and answer cumulative totals.
+# data_structure: immutable Fenwick tree (binary indexed tree)
+# algorithm: point-add update, prefix sum, and half-open range sum
+# representation: source vector plus compact one-based aggregate array
+# dynamic_size: build accepts arbitrary vector lengths
+# logical_complexity: build O(n log n), update/prefix/range O(log n)
+# current_copy_complexity: every recursive scatter copies the immutable tree array
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: transient or copy-on-write array builders
+include "../../src/trees/fenwick_tree.mlpl";
+audit = unwrap(u:ft_build([8, 0, 12, -3, 10, 6]));
+live = unwrap(u:ft_add(audit, 3, 8));
+print("Problem: correct day 3 by +8 and answer cumulative shipment totals while retaining the audit.");
+print("Solution: a Fenwick tree visits logarithmically many compact-array aggregates per update or prefix.");
+{live_first_four_days: unwrap(u:ft_prefix_sum(live, 4)), audit_first_four_days: unwrap(u:ft_prefix_sum(audit, 4)), live_days_2_through_4: unwrap(u:ft_range_sum(live, 2, 5)), retained_audit_total: unwrap(u:ft_prefix_sum(audit, audit.size)), internal_cells: live.size, immutable_array_copy_amplification: 1}

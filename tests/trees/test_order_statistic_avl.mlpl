@@ -1,0 +1,34 @@
+# Native tests for immutable order-statistic AVL rank and select.
+include "src/trees/order_statistic_avl.mlpl";
+
+@test {name: "order statistic AVL rotations and caches", tags: ["trees", "persistent", "native"]}
+def u:test_os_rotations() { "Verify all rotations and detect corrupt height, size, order, and balance metadata.";
+  ll = u:os_from_values([30, 20, 10])?; rr = u:os_from_values([10, 20, 30])?; lr = u:os_from_values([30, 10, 20])?; rl = u:os_from_values([10, 30, 20])?;
+  u:assert_eq([ll.key, rr.key, lr.key, rl.key], [20, 20, 20, 20], "rotation roots differ")?;
+  u:assert_true(u:os_valid(ll) * u:os_valid(rr) * u:os_valid(lr) * u:os_valid(rl), "rotation invariant failed")?;
+  bad_height = {empty: 0, key: ll.key, left: ll.left, right: ll.right, height: 9, size: ll.size}; bad_size = {empty: 0, key: ll.key, left: ll.left, right: ll.right, height: ll.height, size: 9};
+  bad_order = u:os_make(5, u:os_make(8, u:os_empty(), u:os_empty()), u:os_empty()); bad_balance = u:os_make(3, u:os_make(2, u:os_make(1, u:os_empty(), u:os_empty()), u:os_empty()), u:os_empty());
+  u:assert_false(u:os_valid(bad_height), "bad height cache passed")?; u:assert_false(u:os_valid(bad_size), "bad size cache passed")?; u:assert_false(u:os_valid(bad_order), "bad ordering passed")?; u:assert_false(u:os_valid(bad_balance), "bad balance passed")?;
+  ok({test: "order-statistic-avl-rotations", cases: 6})
+}
+
+@test {name: "order statistic AVL rank and select", tags: ["trees", "search", "native"]}
+def u:test_os_rank_select() { "Verify sorted selection and present or missing insertion-position ranks.";
+  tree = u:os_from_values([40, 10, 70, 0, 20, 60, 90, -5])?;
+  u:assert_true(u:os_valid(tree), "built tree invalid")?; u:assert_eq(u:os_inorder(tree), [-5, 0, 10, 20, 40, 60, 70, 90], "inorder differs")?;
+  u:assert_eq(u:os_select(tree, 0)?, -5, "first selection failed")?; u:assert_eq(u:os_select(tree, 4)?, 40, "middle selection failed")?; u:assert_eq(u:os_select(tree, 7)?, 90, "last selection failed")?;
+  u:assert_eq(u:os_rank(tree, -5)?, 0, "minimum rank failed")?; u:assert_eq(u:os_rank(tree, 40)?, 4, "middle rank failed")?; u:assert_eq(u:os_rank(tree, -9)?, 0, "below rank failed")?; u:assert_eq(u:os_rank(tree, 15)?, 3, "interior rank failed")?; u:assert_eq(u:os_rank(tree, 100)?, 8, "above rank failed")?;
+  u:assert_err(u:os_select(tree, -1), "negative select should fail")?; u:assert_err(u:os_select(tree, 8), "past-end select should fail")?; u:assert_err(u:os_select(tree, 1.5), "fractional select should fail")?; u:assert_err(u:os_select(u:os_empty(), 0), "empty select should fail")?;
+  ok({test: "order-statistic-avl-rank-select", cases: 13})
+}
+
+@test {name: "order statistic AVL persistence and duplicates", tags: ["trees", "persistent", "native"]}
+def u:test_os_persistence() { "Verify singleton behavior, duplicate-set policy, bad inputs, and retained roots.";
+  empty = u:os_empty(); one = u:os_insert(empty, 0)?; u:assert_eq(one.size, 1, "singleton size failed")?; u:assert_eq(u:os_select(one, 0)?, 0, "singleton select failed")?;
+  duplicate = u:os_insert(one, 0)?; u:assert_eq(duplicate.size, 1, "duplicate should not grow set")?;
+  snapshot = u:os_from_values([10, 30, 50])?; later = u:os_insert(u:os_insert(snapshot, 20)?, 40)?;
+  u:assert_eq(u:os_inorder(snapshot), [10, 30, 50], "later inserts changed snapshot")?; u:assert_eq(u:os_inorder(later), [10, 20, 30, 40, 50], "later insertion failed")?; u:assert_true(u:os_valid(snapshot) * u:os_valid(later), "persistent roots invalid")?;
+  u:assert_err(u:os_insert(empty, [1]), "vector key should fail")?; u:assert_err(u:os_rank(one, [0]), "vector rank key should fail")?; u:assert_err(u:os_from_values(7), "scalar builder input should fail")?;
+  ok({test: "order-statistic-avl-persistence", cases: 9})
+}
+u:run_registered_tests()

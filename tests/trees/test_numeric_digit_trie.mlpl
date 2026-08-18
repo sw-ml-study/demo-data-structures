@@ -1,0 +1,31 @@
+# Native tests for immutable indexed decimal-digit trie routing.
+include "src/trees/numeric_digit_trie.mlpl";
+
+@test {name: "numeric trie exact and longest-prefix lookup", tags: ["trees", "trie", "native"]}
+def u:test_trie_lookup() { "Verify empty, root, shared-prefix, prefix-key, exact, missing, and zero-digit behavior.";
+  empty = u:trie_empty(); u:assert_true(u:trie_valid(empty), "empty trie invalid")?; u:assert_err(u:trie_exact(empty, [1]), "empty exact should miss")?; none = u:trie_longest_prefix(empty, [1, 2])?; u:assert_false(none.found, "empty trie matched prefix")?;
+  rooted = u:trie_insert(empty, fill([0], 0), 7)?; root_match = u:trie_longest_prefix(rooted, [9])?; u:assert_eq([root_match.found, root_match.value, root_match.length], [1, 7, 0], "root default failed")?;
+  trie = u:trie_insert(u:trie_insert(u:trie_insert(rooted, [1, 2], 12)?, [1, 2, 3], 123)?, [1, 0], 10)?;
+  u:assert_eq(u:trie_exact(trie, [1, 2])?, 12, "prefix key exact failed")?; u:assert_eq(u:trie_exact(trie, [1, 0])?, 10, "zero digit exact failed")?; u:assert_err(u:trie_exact(trie, [1]), "nonterminal exact should miss")?;
+  deepest = u:trie_longest_prefix(trie, [1, 2, 3, 8])?; u:assert_eq([deepest.found, deepest.value, deepest.length], [1, 123, 3], "deepest prefix failed")?;
+  fallback = u:trie_longest_prefix(trie, [8, 8])?; u:assert_eq([fallback.value, fallback.length], [7, 0], "root fallback failed")?;
+  ok({test: "numeric-trie-lookup", cases: 9})
+}
+
+@test {name: "numeric trie persistence and replacement", tags: ["trees", "persistent", "native"]}
+def u:test_trie_persistence() { "Verify singleton insertion, duplicate replacement, shared prefixes, and retained versions.";
+  one = u:trie_insert(u:trie_empty(), [4], 40)?; u:assert_true(u:trie_valid(one), "singleton invalid")?;
+  snapshot = u:trie_insert(one, [4, 1], 41)?; live = u:trie_insert(u:trie_insert(snapshot, [4, 1, 5], 415)?, [4, 1], 410)?;
+  u:assert_true(u:trie_valid(snapshot) * u:trie_valid(live), "persistent trie invalid")?; u:assert_eq(u:trie_exact(snapshot, [4, 1])?, 41, "replacement changed snapshot")?; u:assert_eq(u:trie_exact(live, [4, 1])?, 410, "replacement failed")?; u:assert_eq(u:trie_exact(live, [4, 1, 5])?, 415, "shared-prefix child lost")?; u:assert_err(u:trie_exact(snapshot, [4, 1, 5]), "later key appeared in snapshot")?;
+  ok({test: "numeric-trie-persistence", cases: 7})
+}
+
+@test {name: "numeric trie validation and malformed keys", tags: ["trees", "validation", "native"]}
+def u:test_trie_validation() { "Verify digit validation plus out-of-bounds, unreachable, shared, cyclic, flag, and shape corruption.";
+  trie = u:trie_insert(u:trie_empty(), [2, 3], 23)?; u:assert_err(u:trie_insert(trie, [10], 1), "digit ten should fail")?; u:assert_err(u:trie_insert(trie, [-1], 1), "negative digit should fail")?; u:assert_err(u:trie_insert(trie, [1.5], 1), "fractional digit should fail")?; u:assert_err(u:trie_insert(trie, reshape([1, 2, 3, 4], [2, 2]), 1), "matrix key should fail")?; u:assert_err(u:trie_insert(trie, [1], [2]), "vector value should fail")?;
+  bad_handle = {nodes: trie.nodes, children: scatter(trie.children, 0, 99), has_value: trie.has_value, values: trie.values}; bad_flag = {nodes: trie.nodes, children: trie.children, has_value: scatter(trie.has_value, 0, 2), values: trie.values};
+  cycle = {nodes: trie.nodes, children: scatter(trie.children, u:trie_cell(2, 0), 1), has_value: trie.has_value, values: trie.values}; unreachable = u:trie_append_node(trie);
+  u:assert_false(u:trie_valid(bad_handle), "bad handle passed")?; u:assert_false(u:trie_valid(bad_flag), "bad flag passed")?; u:assert_false(u:trie_valid(cycle), "cycle/shared child passed")?; u:assert_false(u:trie_valid(unreachable), "unreachable node passed")?;
+  ok({test: "numeric-trie-validation", cases: 9})
+}
+u:run_registered_tests()

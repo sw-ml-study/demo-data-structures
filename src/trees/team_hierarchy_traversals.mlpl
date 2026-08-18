@@ -1,0 +1,26 @@
+def u:empty_tree() { "Create an empty tree value."; {empty: 1} }
+def u:node(value, left, right) { "Return the node result for the supplied value, left, right."; {empty: 0, value: value, left: left, right: right} }
+def u:preorder(tree) { "Traverse the supplied structure in preorder order."; if tree.empty { fill([0], 0) } else { concat(tree.value, concat(u:preorder(tree.left), u:preorder(tree.right))) } }
+def u:inorder(tree) { "Traverse the supplied structure in inorder order."; if tree.empty { fill([0], 0) } else { concat(u:inorder(tree.left), concat(tree.value, u:inorder(tree.right))) } }
+def u:postorder(tree) { "Traverse the supplied structure in postorder order."; if tree.empty { fill([0], 0) } else { concat(u:postorder(tree.left), concat(u:postorder(tree.right), tree.value)) } }
+def u:empty_arena() { "Create an empty arena value."; {values: fill([0], 0), left_handles: fill([0], 0), right_handles: fill([0], 0), nodes: 0, root: -1} }
+def u:append_node(arena, value, left_handle, right_handle) { "Add the supplied item and return the updated structure."; node_handle = arena.nodes; {values: concat(arena.values, value), left_handles: concat(arena.left_handles, left_handle), right_handles: concat(arena.right_handles, right_handle), nodes: node_handle + 1, root: node_handle} }
+def u:encode(tree, arena) { "Return the encode result for the supplied tree, arena."; if tree.empty { {arena: arena, root: -1} } else { left_result = u:encode(tree.left, arena); right_result = u:encode(tree.right, left_result.arena); extended_arena = u:append_node(right_result.arena, tree.value, left_result.root, right_result.root); {arena: extended_arena, root: extended_arena.root} } }
+def u:index_preorder(arena, handle) { "Return the index preorder result for the supplied arena, handle."; if eq(handle, -1) { fill([0], 0) } else { concat(take(arena.values, 0, handle), concat(u:index_preorder(arena, take(arena.left_handles, 0, handle)), u:index_preorder(arena, take(arena.right_handles, 0, handle)))) } }
+def u:index_inorder(arena, handle) { "Return the index inorder result for the supplied arena, handle."; if eq(handle, -1) { fill([0], 0) } else { concat(u:index_inorder(arena, take(arena.left_handles, 0, handle)), concat(take(arena.values, 0, handle), u:index_inorder(arena, take(arena.right_handles, 0, handle)))) } }
+def u:index_postorder(arena, handle) { "Return the index postorder result for the supplied arena, handle."; if eq(handle, -1) { fill([0], 0) } else { concat(u:index_postorder(arena, take(arena.left_handles, 0, handle)), concat(u:index_postorder(arena, take(arena.right_handles, 0, handle)), take(arena.values, 0, handle))) } }
+def u:audit(arena, handle, seen) { "Return the audit result for the supplied arena, handle, seen.";
+  if eq(handle, -1) { {ok_flag: 1, seen: seen} } else {
+    if lt(handle, 0) + gt(handle, arena.nodes - 1) { {ok_flag: 0, seen: seen} } else {
+      if eq(take(seen, 0, handle), 1) { {ok_flag: 0, seen: seen} } else {
+        marked = scatter(seen, handle, 1); left_audit = u:audit(arena, take(arena.left_handles, 0, handle), marked);
+        if left_audit.ok_flag { right_audit = u:audit(arena, take(arena.right_handles, 0, handle), left_audit.seen); {ok_flag: right_audit.ok_flag, seen: right_audit.seen} } else { left_audit }
+      }
+    }
+  }
+}
+def u:count_seen(seen, position) { "Return the count seen result for the supplied seen, position."; if eq(position, tally(seen)) { 0 } else { take(seen, 0, position) + u:count_seen(seen, position + 1) } }
+def u:valid(arena, root) { "Check whether arena, root satisfies the valid invariant.";
+  shapes = eq(tally(arena.values), arena.nodes) * eq(tally(arena.left_handles), arena.nodes) * eq(tally(arena.right_handles), arena.nodes);
+  if shapes { result = u:audit(arena, root, fill([arena.nodes], 0)); result.ok_flag * eq(u:count_seen(result.seen, 0), arena.nodes) } else { 0 }
+}

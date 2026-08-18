@@ -1,0 +1,18 @@
+# Mini-app: place a new score and answer leaderboard rank/select queries.
+# data_structure: immutable order-statistic AVL tree
+# algorithm: AVL insertion plus cached-size rank and select
+# representation: nested records with cached height and subtree size
+# dynamic_size: yes
+# logical_complexity: insert/rank/select O(log n) in a balanced tree
+# current_copy_complexity: nested record cloning may exceed the rebuilt O(log n) path
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: guaranteed runtime structural sharing and tracing GC
+include "../../src/trees/order_statistic_avl.mlpl";
+published = unwrap(u:os_from_values([120, 85, 200, 150, 100]));
+placement = unwrap(u:os_rank(published, 140));
+live = unwrap(u:os_insert(published, 140));
+print("Problem: place score 140 and answer positional queries without resorting every score.");
+print("Solution: an AVL tree caches subtree sizes for logarithmic rank and select traversal.");
+{score_140_ascending_rank: placement, score_at_rank_3: unwrap(u:os_select(live, 3)), live_scores: u:os_inorder(live), retained_published_scores: u:os_inorder(published), live_height: live.height, live_size: live.size, structural_sharing_guaranteed: 0}

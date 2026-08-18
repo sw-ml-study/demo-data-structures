@@ -17,3 +17,15 @@ map-meter-tombstones	demos/maps/meter_tombstone_reuse.mlpl	open-address-hash-map
 map-growing-meter-hash	demos/maps/growing_meter_hash_map.mlpl	resizable-open-address-map	load-factor-resize-rehash	yes	0	0	current	constrained
 map-chained-sensor-registry	demos/maps/chained_sensor_registry.mlpl	separate-chaining-hash-map	indexed-chain-insert-delete-resize	yes	0	0	current	constrained
 cache-recent-routes	demos/caches/recent_route_cache.mlpl	numeric-lru-cache	lookup-promote-evict	yes	0	0	current	constrained
+tree-team-hierarchy	demos/trees/team_hierarchy_traversals.mlpl	binary-tree	representation-conversion-traversals	yes	0	0	current	constrained
+tree-persistent-reservations	demos/trees/persistent_reservation_index.mlpl	persistent-bst-map	search-path-rebuilding-insert	yes	0	0	current	constrained
+tree-persistent-cancellation	demos/trees/persistent_reservation_cancellation.mlpl	persistent-bst-map	immutable-structural-delete	yes	0	0	current	constrained
+tree-balanced-dispatch	demos/trees/balanced_dispatch_index.mlpl	persistent-avl-map	cached-height-insert-rotations	yes	0	0	current	constrained
+tree-order-statistic-leaderboard	demos/trees/live_leaderboard_rank.mlpl	persistent-order-statistic-avl	cached-size-rank-select-and-insert	yes	0	0	current	constrained
+tree-appointment-conflicts	demos/trees/appointment_conflicts.mlpl	persistent-augmented-interval-avl	cached-maximum-overlap-search	yes	0	0	current	constrained
+tree-warehouse-range-analytics	demos/trees/warehouse_range_analytics.mlpl	persistent-segment-tree	point-update-range-sum-minimum	yes	0	0	current	constrained
+tree-cumulative-shipments	demos/trees/cumulative_shipments.mlpl	immutable-fenwick-tree	point-add-prefix-and-range-sum	yes	0	0	current	constrained
+tree-numeric-prefix-routing	demos/trees/numeric_prefix_routing.mlpl	indexed-decimal-digit-trie	exact-and-longest-prefix-routing	yes	0	0	current	constrained
+tree-page-index	demos/trees/page_index.mlpl	immutable-order-three-btree	search-insert-split-root-growth	yes	0	0	current	constrained
+tree-page-index-retirement	demos/trees/page_index_retirement.mlpl	immutable-order-three-btree	delete-borrow-merge-root-contraction	yes	0	0	current	constrained
+tree-shipping-expression	demos/trees/shipping_cost_expression.mlpl	tagged-expression-tree	closed-composite-interpreter	yes	0	0	current	constrained

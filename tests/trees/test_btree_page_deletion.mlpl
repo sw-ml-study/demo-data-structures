@@ -1,0 +1,31 @@
+# Native tests for persistent order-three B-tree deletion and underflow repair.
+include "src/trees/btree_page_index.mlpl";
+
+def u:test_bt_delete_sequence(tree, keys, index) { "Delete keys recursively, validating every intermediate root."; if eq(index, tally(keys)) { ok(tree) } else { next = u:bt_delete(tree, take(keys, 0, index))?; u:assert_true(u:bt_valid(next), "deletion sequence produced invalid root")?; u:test_bt_delete_sequence(next, keys, index + 1) } }
+
+@test {name: "B-tree deletion borrow and merge repairs", tags: ["trees", "btree", "native"]}
+def u:test_bt_delete_repairs() { "Exercise left/right borrowing and left/middle/right merges through valid page configurations.";
+  under = u:bt_delete_under(u:bt_empty());
+  borrow_left = u:bt_repair_one_left(u:bt_branch1(20, 2, u:bt_leaf1(10, 1), u:bt_leaf2(30, 3, 40, 4)), under); borrow_right = u:bt_repair_one_right(u:bt_branch1(30, 3, u:bt_leaf2(10, 1, 20, 2), u:bt_leaf1(40, 4)), under);
+  merge_left = u:bt_repair_two_left(u:bt_branch2(20, 2, 40, 4, u:bt_leaf1(10, 1), u:bt_leaf1(30, 3), u:bt_leaf1(50, 5)), under); merge_middle = u:bt_repair_two_middle(u:bt_branch2(20, 2, 40, 4, u:bt_leaf1(10, 1), u:bt_leaf1(30, 3), u:bt_leaf1(50, 5)), under); merge_right = u:bt_repair_two_right(u:bt_branch2(20, 2, 40, 4, u:bt_leaf1(10, 1), u:bt_leaf1(30, 3), u:bt_leaf1(50, 5)), under);
+  u:assert_true(u:bt_valid(borrow_left.tree) * u:bt_valid(borrow_right.tree), "borrow repair invalid")?; u:assert_eq(u:bt_inorder(borrow_left.tree), [20, 30, 40], "left borrow keys failed")?; u:assert_eq(u:bt_inorder(borrow_right.tree), [10, 20, 30], "right borrow keys failed")?;
+  u:assert_true(u:bt_valid(merge_left.tree) * u:bt_valid(merge_middle.tree) * u:bt_valid(merge_right.tree), "merge repair invalid")?; u:assert_eq(u:bt_inorder(merge_left.tree), [20, 30, 40, 50], "left merge failed")?; u:assert_eq(u:bt_inorder(merge_middle.tree), [10, 20, 40, 50], "middle merge failed")?; u:assert_eq(u:bt_inorder(merge_right.tree), [10, 20, 30, 40], "right merge failed")?;
+  ok({test: "btree-delete-repairs", cases: 7})
+}
+
+@test {name: "B-tree internal deletion and cascading root contraction", tags: ["trees", "persistent", "native"]}
+def u:test_bt_delete_cascade() { "Delete leaf/internal keys through cascading merges to an empty contracted root.";
+  original = u:bt_from_vectors([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], range(15))?;
+  internal_key = original.key1; after_internal = u:bt_delete(original, internal_key)?; u:assert_true(u:bt_valid(after_internal), "internal-key deletion invalid")?; u:assert_err(u:bt_lookup(after_internal, internal_key), "internal key remained")?;
+  emptied = u:test_bt_delete_sequence(original, [8, 4, 12, 2, 6, 10, 14, 1, 3, 5, 7, 9, 11, 13, 15], 0)?;
+  u:assert_true(emptied.empty, "root did not contract to empty")?; u:assert_true(u:bt_valid(emptied), "empty contracted root invalid")?; u:assert_eq(u:bt_inorder(original), range(15) + 1, "deletion changed retained original")?;
+  ok({test: "btree-delete-cascade", cases: 5})
+}
+
+@test {name: "B-tree deletion boundaries and retained values", tags: ["trees", "validation", "native"]}
+def u:test_bt_delete_boundaries() { "Verify one/two-key leaves, signed keys, zero values, misses, bad keys, and retained roots.";
+  two = u:bt_leaf2(-1, 0, 0, 7); one = u:bt_delete(two, -1)?; u:assert_eq(u:bt_inorder(one), [0], "two-key leaf deletion failed")?; empty = u:bt_delete(one, 0)?; u:assert_true(empty.empty, "one-key leaf did not empty")?;
+  snapshot = u:bt_from_vectors([-10, 0, 10, 20, 30], [0, 1, 2, 3, 4])?; live = u:bt_delete(snapshot, 10)?; u:assert_true(u:bt_valid(snapshot) * u:bt_valid(live), "retained deletion root invalid")?; u:assert_eq(u:bt_lookup(snapshot, 10)?, 2, "retained value changed")?; u:assert_err(u:bt_lookup(live, 10), "deleted key remained")?; u:assert_err(u:bt_delete(live, 99), "missing delete should fail")?; u:assert_err(u:bt_delete(live, [0]), "vector delete key should fail")?;
+  ok({test: "btree-delete-boundaries", cases: 8})
+}
+u:run_registered_tests()

@@ -1,0 +1,17 @@
+# Mini-app: retire page-index entries while preserving the published index.
+# data_structure: immutable order-three B-tree (2-3 tree)
+# algorithm: deletion with predecessor replacement, borrow, merge, and root contraction
+# representation: nested one/two-key pages with explicit underflow results
+# dynamic_size: yes
+# logical_complexity: delete O(log n) page visits
+# current_copy_complexity: nested record cloning may exceed the repaired path
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: guaranteed structural sharing and tracing GC
+include "../../src/trees/btree_page_index.mlpl";
+published = unwrap(u:bt_from_vectors([10, 20, 30, 40, 50, 60, 70, 80, 90], [1, 2, 3, 4, 5, 6, 7, 8, 9]));
+live = unwrap(u:bt_delete(unwrap(u:bt_delete(unwrap(u:bt_delete(published, 20)), 40)), 60));
+print("Problem: retire obsolete numeric index entries without changing the published page index.");
+print("Solution: persistent 2-3-tree deletion borrows or merges pages and contracts the root as needed.");
+{live_keys: u:bt_inorder(live), retained_published_keys: u:bt_inorder(published), live_depth: u:bt_audit(live).depth, live_valid: u:bt_valid(live), structural_sharing_guaranteed: 0}

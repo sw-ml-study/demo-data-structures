@@ -21,10 +21,11 @@ available:
 2. sets, maps, foundational hashing, heaps, priority queues, and LRU caches;
 3. binary/search/balanced trees, tries, B-trees, and indexed range structures.
 
-The repository currently has eighteen demos and twenty-one conformance files
-reporting thirty native tests/cases across sequential, associative, priority,
-and cache structures. See the
-[dynamic-sequence report](docs/dynamic-sequence-report.md), then run:
+The repository currently has thirty demos and thirty-three conformance files
+reporting fifty-six native tests/cases across sequential, associative,
+priority, cache, tree, trie, and indexed-range structures. See the
+[dynamic-sequence report](docs/dynamic-sequence-report.md) and
+[memory design](MEMORY_DESIGN.md), then run:
 
 ```sh
 just demos

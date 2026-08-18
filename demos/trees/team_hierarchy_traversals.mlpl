@@ -1,0 +1,25 @@
+# Mini-app: report a numeric team hierarchy in three deterministic orders.
+#
+# The same immutable hierarchy is represented first as nested records and then
+# converted into an indexed arena. Recursive traversals must agree, showing
+# how algorithms can be kept independent of physical representation.
+#
+# data_structure: record and index-backed binary trees
+# algorithm: preorder, inorder, postorder, representation conversion
+# representation: nested nodes; parallel values/left/right arrays with -1 null
+# dynamic_size: yes
+# logical_complexity: conversion/traversal O(n), recursion depth O(height)
+# current_copy_complexity: nested records and array appends may repeatedly copy
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: modules for shared traversal contracts, structural sharing
+
+include "../../src/trees/team_hierarchy_traversals.mlpl";
+
+none = u:empty_tree();
+hierarchy = u:node(100, u:node(200, u:node(-10, none, none), u:node(200, none, none)), u:node(300, none, none));
+indexed = u:encode(hierarchy, u:empty_arena());
+print("Problem: report one team hierarchy in manager-first, sorted-position, and team-first orders.");
+print("Solution: recursive traversals agree across nested-record and indexed-arena representations.");
+{preorder: u:preorder(hierarchy), inorder: u:inorder(hierarchy), postorder: u:postorder(hierarchy), indexed_preorder: u:index_preorder(indexed.arena, indexed.root), arena_root: indexed.root, arena_nodes: indexed.arena.nodes}

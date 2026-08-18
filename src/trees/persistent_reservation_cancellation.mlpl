@@ -1,0 +1,116 @@
+def u:empty_bst() {
+  "Create an empty bst value.";
+  {empty: 1}
+}
+def u:node(key, value, left, right) {
+  "Return the node result for the supplied key, value, left, right.";
+  {empty: 0, key: key, value: value, left: left, right: right}
+}
+def u:insert(tree, key, value) {
+  "Add the supplied item and return the updated structure.";
+  if tree.empty { u:node(key, value, u:empty_bst(), u:empty_bst()) } else {
+    if lt(key, tree.key) { u:node(tree.key, tree.value, u:insert(tree.left, key, value), tree.right) } else {
+      if gt(key, tree.key) { u:node(tree.key, tree.value, tree.left, u:insert(tree.right, key, value)) } else { u:node(key, value, tree.left, tree.right) }
+    }
+  }
+}
+def u:lookup(tree, key) {
+  "Find the requested value or node in the supplied structure.";
+  if tree.empty {
+    err({kind: "missing", message: "absent"})
+  } else {
+    if lt(key, tree.key) { u:lookup(tree.left, key) } else {
+      if gt(key, tree.key) { u:lookup(tree.right, key) } else {
+        ok(tree.value)
+      }
+    }
+  }
+}
+def u:minimum(tree) {
+  "Return the minimum result for the supplied tree.";
+  if tree.left.empty {
+    tree
+  } else { u:minimum(tree.left) }
+}
+def u:remove_minimum(tree) {
+  "Remove the next item and return the resulting structure.";
+  if tree.left.empty {
+    tree.right
+  } else { u:node(tree.key, tree.value, u:remove_minimum(tree.left), tree.right) }
+}
+def u:remove(tree, key) {
+  "Remove the supplied item and return the updated structure.";
+  if tree.empty {
+    err({kind: "missing", message: "absent"})
+  } else {
+    if lt(key, tree.key) {
+      new_left = u:remove(tree.left, key)?;
+      ok(u:node(tree.key, tree.value, new_left, tree.right))
+    } else {
+      if gt(key, tree.key) {
+        new_right = u:remove(tree.right, key)?;
+        ok(u:node(tree.key, tree.value, tree.left, new_right))
+      } else {
+        if tree.left.empty {
+          ok(tree.right)
+        } else {
+          if tree.right.empty {
+            ok(tree.left)
+          } else {
+            successor = u:minimum(tree.right);
+            ok(u:node(successor.key, successor.value, tree.left, u:remove_minimum(tree.right)))
+          }
+        }
+      }
+    }
+  }
+}
+def u:inorder_keys(tree) {
+  "Traverse the supplied structure in inorder keys order.";
+  if tree.empty {
+    fill([0], 0)
+  } else {
+    concat(u:inorder_keys(tree.left), concat(tree.key, u:inorder_keys(tree.right)))
+  }
+}
+def u:size(tree) {
+  "Return the size result for the supplied tree.";
+  if tree.empty {
+    0
+  } else {
+    1 + u:size(tree.left) + u:size(tree.right)
+  }
+}
+def u:audit(tree) {
+  "Return the audit result for the supplied tree.";
+  if tree.empty {
+    {ok_flag: 1, empty_flag: 1, minimum: 0, maximum: 0, count: 0}
+  } else {
+    left_audit = u:audit(tree.left);
+    right_audit = u:audit(tree.right);
+    left_order = if left_audit.empty_flag {
+      1
+    } else {
+      lt(left_audit.maximum, tree.key)
+    };
+    right_order = if right_audit.empty_flag {
+      1
+    } else {
+      gt(right_audit.minimum, tree.key)
+    };
+    {ok_flag: left_audit.ok_flag * right_audit.ok_flag * left_order * right_order, empty_flag: 0, minimum: if left_audit.empty_flag {
+        tree.key
+      } else {
+        left_audit.minimum
+      }, maximum: if right_audit.empty_flag {
+        tree.key
+      } else {
+        right_audit.maximum
+      }, count: left_audit.count + right_audit.count + 1}
+  }
+}
+def u:valid(tree) {
+  "Check whether tree satisfies the valid invariant.";
+  report = u:audit(tree);
+  report.ok_flag * eq(report.count, u:size(tree))
+}

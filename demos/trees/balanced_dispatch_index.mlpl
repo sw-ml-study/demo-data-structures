@@ -1,0 +1,25 @@
+# Mini-app: index sequential dispatch times without producing a linear tree.
+#
+# Immutable AVL insertion caches heights and rebuilds/rotates the search path.
+# An earlier dispatch snapshot remains available after later arrivals.
+#
+# data_structure: persistent AVL tree map
+# algorithm: recursive insert with LL/RR/LR/RL rotations
+# representation: nested immutable records with cached height
+# dynamic_size: yes
+# logical_complexity: search/insert O(log n), logical allocation O(log n)
+# current_copy_complexity: nested record cloning may exceed rebuilt path
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: runtime structural sharing and tracing GC
+
+include "../../src/trees/balanced_dispatch_index.mlpl";
+
+empty = u:empty_avl();
+early = u:insert(u:insert(u:insert(empty, 10, 100), 20, 0), 30, 300);
+current = u:insert(u:insert(u:insert(early, 40, 400), 50, 500), 60, 600);
+current = u:insert(current, 30, 333);
+print("Problem: index sequential dispatch times without degrading into a linear search tree.");
+print("Solution: persistent AVL rotations keep height bounded while earlier roots remain valid.");
+{ordered_times: u:inorder(current), root: current.key, height: current.height, revised_dispatch_30: unwrap(u:lookup(current, 30)), stored_zero_dispatch_20: unwrap(u:lookup(current, 20)), retained_early_times: u:inorder(early), retained_early_value_30: unwrap(u:lookup(early, 30))}

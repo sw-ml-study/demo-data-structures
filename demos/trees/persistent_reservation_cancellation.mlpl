@@ -1,0 +1,25 @@
+# Mini-app: cancel reservations without changing an earlier audit snapshot.
+#
+# Persistent BST deletion rebuilds the search path. A node with two children
+# is replaced by its inorder successor, which is removed from the right subtree.
+#
+# data_structure: persistent binary search tree map
+# algorithm: immutable leaf/one-child/two-child deletion
+# representation: nested immutable records with an empty sentinel
+# dynamic_size: yes
+# logical_complexity: deletion O(height), logical allocation O(height)
+# current_copy_complexity: nested record cloning may copy untouched subtrees
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: runtime structural sharing and tracing garbage collection
+
+include "../../src/trees/persistent_reservation_cancellation.mlpl";
+
+empty = u:empty_bst();
+morning = u:insert(u:insert(u:insert(u:insert(u:insert(empty, 720, 12), 600, 0), 840, 18), 780, 15), -30, 7);
+without_root = unwrap(u:remove(morning, 720));
+current = unwrap(u:remove(without_root, -30));
+print("Problem: cancel root reservation 720 and negative-minute hold -30 while retaining the morning audit.");
+print("Solution: persistent deletion promotes the inorder successor and rebuilds only logical search paths.");
+{current_minutes: u:inorder_keys(current), promoted_root: current.key, stored_zero_room: unwrap(u:lookup(current, 600)), morning_minutes: u:inorder_keys(morning), morning_room_720: unwrap(u:lookup(morning, 720)), current_size: u:size(current)}

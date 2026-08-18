@@ -1,0 +1,119 @@
+def u:empty_avl() {
+  "Create an empty avl value.";
+  {empty: 1, height: 0}
+}
+def u:higher(a, b) {
+  "Return whether a, b satisfy higher.";
+  if gt(a, b) {
+    a
+  } else {
+    b
+  }
+}
+def u:make(key, value, left, right) {
+  "Return the make result for the supplied key, value, left, right.";
+  {empty: 0, key: key, value: value, left: left, right: right, height: 1 + u:higher(left.height, right.height)}
+}
+def u:factor(tree) {
+  "Return the factor result for the supplied tree.";
+  if tree.empty {
+    0
+  } else {
+    tree.left.height - tree.right.height
+  }
+}
+def u:rotate_right(top) {
+  "Return the rotate right result for the supplied top.";
+  pivot = top.left;
+  moved = pivot.right;
+  new_right = u:make(top.key, top.value, moved, top.right);
+  u:make(pivot.key, pivot.value, pivot.left, new_right)
+}
+def u:rotate_left(top) {
+  "Return the rotate left result for the supplied top.";
+  pivot = top.right;
+  moved = pivot.left;
+  new_left = u:make(top.key, top.value, top.left, moved);
+  u:make(pivot.key, pivot.value, new_left, pivot.right)
+}
+def u:rebalance(tree, inserted_key) {
+  "Return the rebalance result for the supplied tree, inserted_key.";
+  balance = u:factor(tree);
+  if gt(balance, 1) {
+    if lt(inserted_key, tree.left.key) { u:rotate_right(tree) } else { u:rotate_right(u:make(tree.key, tree.value, u:rotate_left(tree.left), tree.right)) }
+  } else {
+    if lt(balance, -1) {
+      if gt(inserted_key, tree.right.key) { u:rotate_left(tree) } else { u:rotate_left(u:make(tree.key, tree.value, tree.left, u:rotate_right(tree.right))) }
+    } else {
+      tree
+    }
+  }
+}
+def u:insert(tree, key, value) {
+  "Add the supplied item and return the updated structure.";
+  if tree.empty { u:make(key, value, u:empty_avl(), u:empty_avl()) } else {
+    if lt(key, tree.key) { u:rebalance(u:make(tree.key, tree.value, u:insert(tree.left, key, value), tree.right), key) } else {
+      if gt(key, tree.key) { u:rebalance(u:make(tree.key, tree.value, tree.left, u:insert(tree.right, key, value)), key) } else { u:make(key, value, tree.left, tree.right) }
+    }
+  }
+}
+def u:lookup(tree, key) {
+  "Find the requested value or node in the supplied structure.";
+  if tree.empty {
+    err({kind: "missing", message: "absent"})
+  } else {
+    if lt(key, tree.key) { u:lookup(tree.left, key) } else {
+      if gt(key, tree.key) { u:lookup(tree.right, key) } else {
+        ok(tree.value)
+      }
+    }
+  }
+}
+def u:inorder(tree) {
+  "Traverse the supplied structure in inorder order.";
+  if tree.empty {
+    fill([0], 0)
+  } else {
+    concat(u:inorder(tree.left), concat(tree.key, u:inorder(tree.right)))
+  }
+}
+def u:audit(tree) {
+  "Return the audit result for the supplied tree.";
+  if tree.empty {
+    {ok_flag: 1, empty_flag: 1, minimum: 0, maximum: 0, height: 0, count: 0}
+  } else {
+    left_audit = u:audit(tree.left);
+    right_audit = u:audit(tree.right);
+    expected_height = 1 + u:higher(left_audit.height, right_audit.height);
+    balance = left_audit.height - right_audit.height;
+    order_left = if left_audit.empty_flag {
+      1
+    } else {
+      lt(left_audit.maximum, tree.key)
+    };
+    order_right = if right_audit.empty_flag {
+      1
+    } else {
+      gt(right_audit.minimum, tree.key)
+    };
+    {ok_flag: left_audit.ok_flag * right_audit.ok_flag * order_left * order_right * eq(tree.height, expected_height) * (lt(abs(balance), 2) + eq(abs(balance), 1)), empty_flag: 0, minimum: if left_audit.empty_flag {
+        tree.key
+      } else {
+        left_audit.minimum
+      }, maximum: if right_audit.empty_flag {
+        tree.key
+      } else {
+        right_audit.maximum
+      }, height: expected_height, count: left_audit.count + right_audit.count + 1}
+  }
+}
+def u:valid(tree) {
+  "Check whether tree satisfies the valid invariant.";
+  u:audit(tree).ok_flag
+}
+def u:add_range(tree, key, last) {
+  "Add the supplied item and return the updated structure.";
+  if gt(key, last) {
+    tree
+  } else { u:add_range(u:insert(tree, key, key * 10), key + 1, last) }
+}

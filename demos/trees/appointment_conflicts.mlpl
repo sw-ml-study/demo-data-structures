@@ -1,0 +1,18 @@
+# Mini-app: detect an appointment conflict without scanning every reservation.
+# data_structure: immutable augmented AVL interval tree
+# algorithm: cached-maximum overlap search over half-open intervals
+# representation: nested records with cached height and subtree maximum endpoint
+# dynamic_size: yes
+# logical_complexity: insert O(log n); overlap search O(log n + matches) typical, O(n) worst case
+# current_copy_complexity: nested record cloning may exceed the rebuilt O(log n) path
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: guaranteed structural sharing and tracing GC
+include "../../src/trees/interval_tree.mlpl";
+published = unwrap(u:it_from_vectors([540, 600, 690, 780], [585, 630, 750, 840]));
+query = unwrap(u:it_find_overlap(published, 720, 765));
+live = unwrap(u:it_insert(published, 900, 930));
+print("Problem: determine whether proposed appointment [720,765) conflicts without scanning the full schedule.");
+print("Solution: cached subtree maximum endpoints prune intervals that cannot overlap.");
+{conflict_found: query.found, conflict_start: query.start, conflict_end: query.end, retained_schedule_height: published.height, live_schedule_height: live.height, live_max_endpoint: live.max_end, structural_sharing_guaranteed: 0}

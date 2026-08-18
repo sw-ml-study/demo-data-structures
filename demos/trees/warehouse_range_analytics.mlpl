@@ -1,0 +1,17 @@
+# Mini-app: update one warehouse bin and compare range analytics with an audit snapshot.
+# data_structure: immutable segment tree
+# algorithm: persistent point update plus half-open range sum and minimum queries
+# representation: nested binary intervals with cached count, sum, and minimum
+# dynamic_size: build accepts arbitrary vector lengths
+# logical_complexity: build O(n), point update O(log n), range query O(log n + covered nodes)
+# current_copy_complexity: nested record cloning may exceed the rebuilt O(log n) path
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: guaranteed structural sharing and tracing GC
+include "../../src/trees/segment_tree.mlpl";
+audit = unwrap(u:st_build([12, 0, 7, -2, 15, 9]));
+live = unwrap(u:st_update(audit, 3, 8));
+print("Problem: revise bin 3 and answer aisle totals/minima while retaining the audited readings.");
+print("Solution: a persistent segment tree rebuilds one path and uses cached range aggregates.");
+{live_bins_1_through_4_sum: unwrap(u:st_range_sum(live, 1, 5)), live_bins_1_through_4_minimum: unwrap(u:st_range_minimum(live, 1, 5)), audit_bins_1_through_4_sum: unwrap(u:st_range_sum(audit, 1, 5)), all_live_sum: unwrap(u:st_range_sum(live, 0, live.count)), retained_audit_sum: audit.sum, structural_sharing_guaranteed: 0}

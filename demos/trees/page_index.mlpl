@@ -1,0 +1,18 @@
+# Mini-app: maintain a page-oriented numeric index while preserving a published snapshot.
+# data_structure: immutable order-three B-tree (2-3 tree)
+# algorithm: search and insertion with leaf/internal splitting and root growth
+# representation: nested one/two-key pages with two/three children
+# dynamic_size: yes
+# logical_complexity: search/insert O(log n) page visits
+# current_copy_complexity: nested record cloning may exceed the rebuilt path
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: structural sharing, tracing GC, and a separate deletion demo
+include "../../src/trees/btree_page_index.mlpl";
+published = unwrap(u:bt_from_vectors([40, 10, 70, 20, 60], [400, 100, 700, 200, 600]));
+live = unwrap(u:bt_insert(unwrap(u:bt_insert(published, 30, 300)), 50, 500));
+live = unwrap(u:bt_insert(live, 20, 222));
+print("Problem: grow a numeric page index through splits while retaining the published root.");
+print("Solution: immutable 2-3-tree insertion promotes median keys and grows a new root when needed.");
+{live_keys: u:bt_inorder(live), live_value_20: unwrap(u:bt_lookup(live, 20)), retained_published_keys: u:bt_inorder(published), retained_published_value_20: unwrap(u:bt_lookup(published, 20)), live_page_depth: u:bt_audit(live).depth, deletion_implemented: 0, structural_sharing_guaranteed: 0}

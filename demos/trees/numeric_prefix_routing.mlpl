@@ -1,0 +1,18 @@
+# Mini-app: select the most specific numeric route prefix for an account code.
+# data_structure: immutable indexed decimal-digit trie
+# algorithm: insertion, exact lookup, and longest-prefix match
+# representation: flat ten-way child table plus value flags/values
+# dynamic_size: yes
+# logical_complexity: insert/exact/longest-prefix O(key length)
+# current_copy_complexity: node append and link updates copy arena arrays
+# explicit_loops: 0
+# target_loops: 0
+# required_features: current
+# future_improvement: mature strings plus transient/copy-on-write arena builders
+include "../../src/trees/numeric_digit_trie.mlpl";
+published = unwrap(u:trie_insert(unwrap(u:trie_insert(unwrap(u:trie_insert(u:trie_empty(), [4], 40)), [4, 1], 41)), [4, 1, 5], 415));
+live = unwrap(u:trie_insert(published, [4, 1, 5, 9], 4159));
+route = unwrap(u:trie_longest_prefix(live, [4, 1, 5, 9, 2]));
+print("Problem: route account code 41592 using the most specific configured numeric prefix.");
+print("Solution: a ten-way digit trie retains the deepest valued node encountered during traversal.");
+{matched_route: route.value, matched_digits: route.length, live_nodes: live.nodes, retained_published_exact_415: unwrap(u:trie_exact(published, [4, 1, 5])), published_has_4159: (unwrap(u:trie_longest_prefix(published, [4, 1, 5, 9]))).length, general_strings_required: 0}

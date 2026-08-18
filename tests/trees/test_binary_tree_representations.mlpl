@@ -1,0 +1,32 @@
+include "src/trees/team_hierarchy_traversals.mlpl";
+
+@test {name: "contract", tags: ["migration", "trees"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  none = u:empty_tree();
+  u:assert_eq(u:preorder(none), fill([0], 0), "empty preorder failed")?;
+  empty_indexed = u:encode(none, u:empty_arena()); u:assert_true(u:valid(empty_indexed.arena, empty_indexed.root), "empty indexed tree invalid")?;
+  singleton = u:node(-5, none, none); u:assert_eq(u:inorder(singleton), [-5], "singleton failed")?;
+  balanced = u:node(4, u:node(2, u:node(-1, none, none), u:node(2, none, none)), u:node(6, u:node(5, none, none), u:node(7, none, none)));
+  encoded = u:encode(balanced, u:empty_arena());
+  u:assert_eq(u:preorder(balanced), [4, 2, -1, 2, 6, 5, 7], "balanced preorder failed")?;
+  u:assert_eq(u:inorder(balanced), [-1, 2, 2, 4, 5, 6, 7], "balanced inorder failed")?;
+  u:assert_eq(u:postorder(balanced), [-1, 2, 2, 5, 7, 6, 4], "balanced postorder failed")?;
+  u:assert_eq(u:index_preorder(encoded.arena, encoded.root), u:preorder(balanced), "preorder representation parity failed")?;
+  u:assert_eq(u:index_inorder(encoded.arena, encoded.root), u:inorder(balanced), "inorder representation parity failed")?;
+  u:assert_eq(u:index_postorder(encoded.arena, encoded.root), u:postorder(balanced), "postorder representation parity failed")?;
+  u:assert_true(u:valid(encoded.arena, encoded.root), "encoded tree invalid")?;
+  skewed = u:node(1, none, u:node(2, none, u:node(3, none, none)));
+  u:assert_eq(u:inorder(skewed), [1, 2, 3], "skewed traversal failed")?;
+  larger = u:node(9, balanced, u:node(10, none, none));
+  u:assert_eq(u:preorder(balanced), [4, 2, -1, 2, 6, 5, 7], "retained record tree mutated")?;
+  u:assert_eq(u:preorder(larger), [9, 4, 2, -1, 2, 6, 5, 7, 10], "larger persistent tree failed")?;
+  bad_handle_arena = {values: encoded.arena.values, left_handles: scatter(encoded.arena.left_handles, encoded.root, 999), right_handles: encoded.arena.right_handles, nodes: encoded.arena.nodes, root: encoded.root};
+  u:assert_false(u:valid(bad_handle_arena, bad_handle_arena.root), "invalid handle passed validation")?;
+  cycle_arena = {values: encoded.arena.values, left_handles: scatter(encoded.arena.left_handles, encoded.root, encoded.root), right_handles: encoded.arena.right_handles, nodes: encoded.arena.nodes, root: encoded.root};
+  u:assert_false(u:valid(cycle_arena, cycle_arena.root), "logical cycle passed validation")?;
+  shared_arena = {values: encoded.arena.values, left_handles: encoded.arena.left_handles, right_handles: scatter(encoded.arena.right_handles, encoded.root, take(encoded.arena.left_handles, 0, encoded.root)), nodes: encoded.arena.nodes, root: encoded.root};
+  u:assert_false(u:valid(shared_arena, shared_arena.root), "shared child passed strict tree validation")?;
+  ok({test: "binary-tree-representations", cases: 16})
+}
+
+u:run_registered_tests()

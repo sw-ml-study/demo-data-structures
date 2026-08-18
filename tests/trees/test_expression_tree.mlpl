@@ -1,0 +1,26 @@
+include "src/trees/shipping_cost_expression.mlpl";
+
+@test {name: "contract", tags: ["migration", "trees"]}
+def u:test_contract() { "Run this script's conformance assertions.";
+  u:assert_eq(u:evaluate(u:literal(7))?, 7, "literal failed")?;
+  u:assert_eq(u:evaluate(u:literal(-3))?, -3, "negative literal failed")?;
+  u:assert_eq(u:evaluate(u:literal(0))?, 0, "zero literal failed")?;
+  add_expr = u:operation(1, u:literal(7), u:literal(5)); u:assert_eq(u:evaluate(add_expr)?, 12, "addition failed")?;
+  sub_expr = u:operation(2, u:literal(7), u:literal(9)); u:assert_eq(u:evaluate(sub_expr)?, -2, "subtraction failed")?;
+  mul_expr = u:operation(3, u:literal(-3), u:literal(4)); u:assert_eq(u:evaluate(mul_expr)?, -12, "multiplication failed")?;
+  div_expr = u:operation(4, u:literal(9), u:literal(3)); u:assert_eq(u:evaluate(div_expr)?, 3, "division failed")?;
+  precedence = u:operation(1, u:literal(2), u:operation(3, u:literal(3), u:literal(4)));
+  u:assert_eq(u:evaluate(precedence)?, 14, "shape precedence failed")?;
+  u:assert_eq(u:prefix_tokens(precedence), [1, 0, 2, 3, 0, 3, 0, 4], "prefix traversal failed")?;
+  u:assert_eq(u:count_nodes(precedence), 5, "traversal node count failed")?;
+  u:assert_err(u:evaluate(u:operation(4, u:literal(8), u:literal(0))), "division by zero should fail")?;
+  u:assert_err(u:evaluate(u:operation(9, u:literal(1), u:literal(2))), "invalid tag should fail")?;
+  u:assert_err(u:evaluate(u:operation(1, u:empty_expr(), u:literal(2))), "malformed arity should fail")?;
+  shared_looking = u:operation(3, u:literal(6), u:literal(7)); larger = u:operation(1, shared_looking, shared_looking);
+  u:assert_eq(u:evaluate(larger)?, 84, "reused subtree evaluation failed")?;
+  u:assert_eq(u:evaluate(shared_looking)?, 42, "larger tree mutated retained subtree")?;
+  u:assert_eq(tally(u:prefix_tokens(precedence)), 8, "evaluation/traversal parity fixture failed")?;
+  ok({test: "expression-tree", cases: 16})
+}
+
+u:run_registered_tests()

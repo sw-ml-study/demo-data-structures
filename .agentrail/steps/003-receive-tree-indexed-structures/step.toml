@@ -1,6 +1,6 @@
 number = 3
 slug = "receive-tree-indexed-structures"
-status = "pending"
+status = "in-progress"
 description = "Receive tree, trie, B-tree, Fenwick, segment, interval, order-statistic, and ..."
 role = "production"
 context_files = []
