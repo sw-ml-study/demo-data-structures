@@ -1,0 +1,11 @@
+{
+  "task_type": "repository-refactor",
+  "state": {
+    "number": 3,
+    "step": "receive-tree-indexed-structures"
+  },
+  "action": "Added failing migration fixture; copied tree corpus and memory analysis; moved catalogs; formatted nine files with canonical formatter; documented transitional expression-tree dependency; removed source authority; ran both full mlplunit-backed gates; committed target 4645dba.",
+  "result": "success",
+  "reward": 1,
+  "timestamp": "2026-08-18T09:05:28"
+}

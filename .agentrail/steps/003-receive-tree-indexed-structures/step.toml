@@ -1,9 +1,10 @@
 number = 3
 slug = "receive-tree-indexed-structures"
-status = "in-progress"
+status = "completed"
 description = "Receive tree, trie, B-tree, Fenwick, segment, interval, order-statistic, and ..."
 role = "production"
 context_files = []
 created_at = "2026-08-16T12:09:06"
+completed_at = "2026-08-18T09:05:28"
 task_type = "repository-refactor"
-commits = []
+commits = ["4645dbadc902ce5a328376e0c5dc17720a3dfdf4"]
