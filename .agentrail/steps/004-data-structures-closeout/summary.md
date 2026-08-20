@@ -1,0 +1,1 @@
+Closed out the data-structures extraction with mandatory AGENTS.md/CLAUDE.md docstring and canonical-format rules, repository-wide format/docstring audit gates, all 94 MLPL files canonically formatted, and green 30-demo/56-mlplunit-test validation.
