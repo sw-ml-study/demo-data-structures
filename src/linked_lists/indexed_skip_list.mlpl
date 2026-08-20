@@ -1,23 +1,212 @@
 # Immutable indexed skip list with four levels and deterministic integer-key heights.
-def u:sl_empty() { "Create an empty skip list with handle zero reserved as the four-level head."; {nodes: 1, size: 0, keys: [0], values: [0], heights: [4], active: [1], forward: fill([4], -1)} }
-def u:sl_cell(handle, level) { "Return the flat forward-table offset for handle and zero-based level."; handle * 4 + level }
-def u:sl_height_steps(code, height) { "Derive a reproducible height by counting factors of two up to four levels."; if eq(height, 4) + eq(mod(code, 2), 1) { height } else { u:sl_height_steps(code / 2, height + 1) } }
-def u:sl_height(key) { "Return a deterministic one-to-four level height for an integer key."; u:sl_height_steps(abs(key) + 1, 1) }
-def u:sl_key_valid(key) { "Return one when a key is an integer numeric scalar."; if eq(rank(key), 0) { eq(key, floor(key)) } else { 0 } }
-def u:sl_seek_level(list, handle, key, level, steps) { "Advance at one level to the last handle whose next key is below key."; if eq(steps, list.nodes) { handle } else { next = take(list.forward, 0, u:sl_cell(handle, level)); if eq(next, -1) { handle } else { if lt(take(list.keys, 0, next), key) { u:sl_seek_level(list, next, key, level, steps + 1) } else { handle } } } }
-def u:sl_predecessors(list, key, level, handle, result) { "Find predecessor handles from upper levels down to level zero."; if lt(level, 0) { result } else { predecessor = u:sl_seek_level(list, handle, key, level, 0); u:sl_predecessors(list, key, level - 1, predecessor, scatter(result, level, predecessor)) } }
-def u:sl_find_handle(list, key) { "Return the active handle for key or minus one."; predecessors = u:sl_predecessors(list, key, 3, 0, fill([4], 0)); candidate = take(list.forward, 0, u:sl_cell(take(predecessors, 0, 0), 0)); if eq(candidate, -1) { -1 } else { if eq(take(list.keys, 0, candidate), key) { candidate } else { -1 } } }
-def u:sl_link_levels(forward, predecessors, handle, height, level) { "Recursively splice a new handle into each level below its height."; if eq(level, height) { forward } else { predecessor = take(predecessors, 0, level); old_next = take(forward, 0, u:sl_cell(predecessor, level)); linked_node = scatter(forward, u:sl_cell(handle, level), old_next); u:sl_link_levels(scatter(linked_node, u:sl_cell(predecessor, level), handle), predecessors, handle, height, level + 1) } }
-def u:sl_put(list, key, value) { "Persistently insert or replace an integer-keyed directory entry."; if u:sl_key_valid(key) * eq(rank(value), 0) { existing = u:sl_find_handle(list, key); if gt(existing, -1) { ok({nodes: list.nodes, size: list.size, keys: list.keys, values: scatter(list.values, existing, value), heights: list.heights, active: list.active, forward: list.forward}) } else { predecessors = u:sl_predecessors(list, key, 3, 0, fill([4], 0)); handle = list.nodes; height = u:sl_height(key); base = {nodes: handle + 1, size: list.size + 1, keys: concat(list.keys, key), values: concat(list.values, value), heights: concat(list.heights, height), active: concat(list.active, 1), forward: concat(list.forward, fill([4], -1))}; ok({nodes: base.nodes, size: base.size, keys: base.keys, values: base.values, heights: base.heights, active: base.active, forward: u:sl_link_levels(base.forward, predecessors, handle, height, 0)}) } } else { err({kind: "entry", message: "skip-list key must be an integer scalar and value a scalar"}) } }
-def u:sl_lookup(list, key) { "Return the value for an exact integer key or a missing error."; if u:sl_key_valid(key) { handle = u:sl_find_handle(list, key); if eq(handle, -1) { err({kind: "missing", message: "skip-list key is absent"}) } else { ok(take(list.values, 0, handle)) } } else { err({kind: "key", message: "lookup key must be an integer scalar"}) } }
-def u:sl_unlink_levels(forward, predecessors, handle, height, level) { "Recursively unlink a handle from every level it occupies."; if eq(level, height) { forward } else { predecessor = take(predecessors, 0, level); next = take(forward, 0, u:sl_cell(handle, level)); u:sl_unlink_levels(scatter(scatter(forward, u:sl_cell(predecessor, level), next), u:sl_cell(handle, level), -1), predecessors, handle, height, level + 1) } }
-def u:sl_delete(list, key) { "Persistently delete an entry, retaining its inactive stable arena handle."; if u:sl_key_valid(key) { handle = u:sl_find_handle(list, key); if eq(handle, -1) { err({kind: "missing", message: "cannot delete absent skip-list key"}) } else { predecessors = u:sl_predecessors(list, key, 3, 0, fill([4], 0)); height = take(list.heights, 0, handle); ok({nodes: list.nodes, size: list.size - 1, keys: list.keys, values: list.values, heights: list.heights, active: scatter(list.active, handle, 0), forward: u:sl_unlink_levels(list.forward, predecessors, handle, height, 0)}) } } else { err({kind: "key", message: "delete key must be an integer scalar"}) } }
-def u:sl_keys_from(list, handle, remaining) { "Traverse level zero into sorted active keys with a bounded step count."; if eq(handle, -1) + eq(remaining, 0) { fill([0], 0) } else { concat(take(list.keys, 0, handle), u:sl_keys_from(list, take(list.forward, 0, u:sl_cell(handle, 0)), remaining - 1)) } }
-def u:sl_keys(list) { "Return all active keys in level-zero order."; u:sl_keys_from(list, take(list.forward, 0, 0), list.size) }
-def u:sl_level_valid(list, level, handle, previous_key, has_previous, steps) { "Validate one forward chain for bounds, activity, height, ordering, and cycles."; next = take(list.forward, 0, u:sl_cell(handle, level)); if eq(next, -1) { 1 } else { if eq(steps, list.nodes) { 0 } else { bounds = gt(next, 0) * lt(next, list.nodes); if bounds { key = take(list.keys, 0, next); take(list.active, 0, next) * gt(take(list.heights, 0, next), level) * (if has_previous { gt(key, previous_key) } else { 1 }) * u:sl_level_valid(list, level, next, key, 1, steps + 1) } else { 0 } } } }
-def u:sl_levels_valid(list, level) { "Recursively validate all four ordered forward chains."; if eq(level, 4) { 1 } else { u:sl_level_valid(list, level, 0, 0, 0, 0) * u:sl_levels_valid(list, level + 1) } }
-def u:sl_active_count(list, index) { "Count active non-head arena nodes recursively."; if eq(index, list.nodes) { 0 } else { take(list.active, 0, index) + u:sl_active_count(list, index + 1) } }
-def u:sl_reachable_keys_valid(list) { "Verify level-zero reachability covers exactly every active non-head node."; eq(tally(u:sl_keys(list)), list.size) * eq(u:sl_active_count(list, 1), list.size) }
-def u:sl_valid(list) { "Validate shapes, head metadata, active count, ordering, handles, levels, cycles, and reachability."; shapes = eq(tally(list.keys), list.nodes) * eq(tally(list.values), list.nodes) * eq(tally(list.heights), list.nodes) * eq(tally(list.active), list.nodes) * eq(tally(list.forward), list.nodes * 4); if shapes { head_ok = eq(take(list.heights, 0, 0), 4) * eq(take(list.active, 0, 0), 1); if head_ok { if u:sl_levels_valid(list, 0) { u:sl_reachable_keys_valid(list) } else { 0 } } else { 0 } } else { 0 } }
-def u:sl_add_entries(list, keys, values, index) { "Recursively insert parallel directory entries from index onward."; if eq(index, tally(keys)) { ok(list) } else { u:sl_add_entries(u:sl_put(list, take(keys, 0, index), take(values, 0, index))?, keys, values, index + 1) } }
-def u:sl_from_vectors(keys, values) { "Build a skip list from equal-length key/value vectors."; if eq(rank(keys), 1) * eq(rank(values), 1) * eq(tally(keys), tally(values)) { u:sl_add_entries(u:sl_empty(), keys, values, 0) } else { err({kind: "entries", message: "keys and values must be equal-length vectors"}) } }
+def u:sl_empty() {
+  "Create an empty skip list with handle zero reserved as the four-level head.";
+  {nodes: 1, size: 0, keys: [0], values: [0], heights: [4], active: [1], forward: fill([4], -1)}
+}
+def u:sl_cell(handle, level) {
+  "Return the flat forward-table offset for handle and zero-based level.";
+  handle * 4 + level
+}
+def u:sl_height_steps(code, height) {
+  "Derive a reproducible height by counting factors of two up to four levels.";
+  if eq(height, 4) + eq(mod(code, 2), 1) {
+    height
+  } else { u:sl_height_steps(code / 2, height + 1) }
+}
+def u:sl_height(key) {
+  "Return a deterministic one-to-four level height for an integer key.";
+  u:sl_height_steps(abs(key) + 1, 1)
+}
+def u:sl_key_valid(key) {
+  "Return one when a key is an integer numeric scalar.";
+  if eq(rank(key), 0) {
+    eq(key, floor(key))
+  } else {
+    0
+  }
+}
+def u:sl_seek_level(list, handle, key, level, steps) {
+  "Advance at one level to the last handle whose next key is below key.";
+  if eq(steps, list.nodes) {
+    handle
+  } else {
+    next = take(list.forward, 0, u:sl_cell(handle, level));
+    if eq(next, -1) {
+      handle
+    } else {
+      if lt(take(list.keys, 0, next), key) { u:sl_seek_level(list, next, key, level, steps + 1) } else {
+        handle
+      }
+    }
+  }
+}
+def u:sl_predecessors(list, key, level, handle, result) {
+  "Find predecessor handles from upper levels down to level zero.";
+  if lt(level, 0) {
+    result
+  } else {
+    predecessor = u:sl_seek_level(list, handle, key, level, 0);
+    u:sl_predecessors(list, key, level - 1, predecessor, scatter(result, level, predecessor))
+  }
+}
+def u:sl_find_handle(list, key) {
+  "Return the active handle for key or minus one.";
+  predecessors = u:sl_predecessors(list, key, 3, 0, fill([4], 0));
+  candidate = take(list.forward, 0, u:sl_cell(take(predecessors, 0, 0), 0));
+  if eq(candidate, -1) {
+    -1
+  } else {
+    if eq(take(list.keys, 0, candidate), key) {
+      candidate
+    } else {
+      -1
+    }
+  }
+}
+def u:sl_link_levels(forward, predecessors, handle, height, level) {
+  "Recursively splice a new handle into each level below its height.";
+  if eq(level, height) {
+    forward
+  } else {
+    predecessor = take(predecessors, 0, level);
+    old_next = take(forward, 0, u:sl_cell(predecessor, level));
+    linked_node = scatter(forward, u:sl_cell(handle, level), old_next);
+    u:sl_link_levels(scatter(linked_node, u:sl_cell(predecessor, level), handle), predecessors, handle, height, level + 1)
+  }
+}
+def u:sl_put(list, key, value) {
+  "Persistently insert or replace an integer-keyed directory entry.";
+  if u:sl_key_valid(key) * eq(rank(value), 0) {
+    existing = u:sl_find_handle(list, key);
+    if gt(existing, -1) {
+      ok({nodes: list.nodes, size: list.size, keys: list.keys, values: scatter(list.values, existing, value), heights: list.heights, active: list.active, forward: list.forward})
+    } else {
+      predecessors = u:sl_predecessors(list, key, 3, 0, fill([4], 0));
+      handle = list.nodes;
+      height = u:sl_height(key);
+      base = {nodes: handle + 1, size: list.size + 1, keys: concat(list.keys, key), values: concat(list.values, value), heights: concat(list.heights, height), active: concat(list.active, 1), forward: concat(list.forward, fill([4], -1))};
+      ok({nodes: base.nodes, size: base.size, keys: base.keys, values: base.values, heights: base.heights, active: base.active, forward: u:sl_link_levels(base.forward, predecessors, handle, height, 0)})
+    }
+  } else {
+    err({kind: "entry", message: "skip-list key must be an integer scalar and value a scalar"})
+  }
+}
+def u:sl_lookup(list, key) {
+  "Return the value for an exact integer key or a missing error.";
+  if u:sl_key_valid(key) {
+    handle = u:sl_find_handle(list, key);
+    if eq(handle, -1) {
+      err({kind: "missing", message: "skip-list key is absent"})
+    } else {
+      ok(take(list.values, 0, handle))
+    }
+  } else {
+    err({kind: "key", message: "lookup key must be an integer scalar"})
+  }
+}
+def u:sl_unlink_levels(forward, predecessors, handle, height, level) {
+  "Recursively unlink a handle from every level it occupies.";
+  if eq(level, height) {
+    forward
+  } else {
+    predecessor = take(predecessors, 0, level);
+    next = take(forward, 0, u:sl_cell(handle, level));
+    u:sl_unlink_levels(scatter(scatter(forward, u:sl_cell(predecessor, level), next), u:sl_cell(handle, level), -1), predecessors, handle, height, level + 1)
+  }
+}
+def u:sl_delete(list, key) {
+  "Persistently delete an entry, retaining its inactive stable arena handle.";
+  if u:sl_key_valid(key) {
+    handle = u:sl_find_handle(list, key);
+    if eq(handle, -1) {
+      err({kind: "missing", message: "cannot delete absent skip-list key"})
+    } else {
+      predecessors = u:sl_predecessors(list, key, 3, 0, fill([4], 0));
+      height = take(list.heights, 0, handle);
+      ok({nodes: list.nodes, size: list.size - 1, keys: list.keys, values: list.values, heights: list.heights, active: scatter(list.active, handle, 0), forward: u:sl_unlink_levels(list.forward, predecessors, handle, height, 0)})
+    }
+  } else {
+    err({kind: "key", message: "delete key must be an integer scalar"})
+  }
+}
+def u:sl_keys_from(list, handle, remaining) {
+  "Traverse level zero into sorted active keys with a bounded step count.";
+  if eq(handle, -1) + eq(remaining, 0) {
+    fill([0], 0)
+  } else {
+    concat(take(list.keys, 0, handle), u:sl_keys_from(list, take(list.forward, 0, u:sl_cell(handle, 0)), remaining - 1))
+  }
+}
+def u:sl_keys(list) {
+  "Return all active keys in level-zero order.";
+  u:sl_keys_from(list, take(list.forward, 0, 0), list.size)
+}
+def u:sl_level_valid(list, level, handle, previous_key, has_previous, steps) {
+  "Validate one forward chain for bounds, activity, height, ordering, and cycles.";
+  next = take(list.forward, 0, u:sl_cell(handle, level));
+  if eq(next, -1) {
+    1
+  } else {
+    if eq(steps, list.nodes) {
+      0
+    } else {
+      bounds = gt(next, 0) * lt(next, list.nodes);
+      if bounds {
+        key = take(list.keys, 0, next);
+        take(list.active, 0, next) * gt(take(list.heights, 0, next), level) * (if has_previous {
+            gt(key, previous_key)
+          } else {
+            1
+          }) * u:sl_level_valid(list, level, next, key, 1, steps + 1)
+      } else {
+        0
+      }
+    }
+  }
+}
+def u:sl_levels_valid(list, level) {
+  "Recursively validate all four ordered forward chains.";
+  if eq(level, 4) {
+    1
+  } else { u:sl_level_valid(list, level, 0, 0, 0, 0) * u:sl_levels_valid(list, level + 1) }
+}
+def u:sl_active_count(list, index) {
+  "Count active non-head arena nodes recursively.";
+  if eq(index, list.nodes) {
+    0
+  } else {
+    take(list.active, 0, index) + u:sl_active_count(list, index + 1)
+  }
+}
+def u:sl_reachable_keys_valid(list) {
+  "Verify level-zero reachability covers exactly every active non-head node.";
+  eq(tally(u:sl_keys(list)), list.size) * eq(u:sl_active_count(list, 1), list.size)
+}
+def u:sl_valid(list) {
+  "Validate shapes, head metadata, active count, ordering, handles, levels, cycles, and reachability.";
+  shapes = eq(tally(list.keys), list.nodes) * eq(tally(list.values), list.nodes) * eq(tally(list.heights), list.nodes) * eq(tally(list.active), list.nodes) * eq(tally(list.forward), list.nodes * 4);
+  if shapes {
+    head_ok = eq(take(list.heights, 0, 0), 4) * eq(take(list.active, 0, 0), 1);
+    if head_ok {
+      if u:sl_levels_valid(list, 0) { u:sl_reachable_keys_valid(list) } else {
+        0
+      }
+    } else {
+      0
+    }
+  } else {
+    0
+  }
+}
+def u:sl_add_entries(list, keys, values, index) {
+  "Recursively insert parallel directory entries from index onward.";
+  if eq(index, tally(keys)) {
+    ok(list)
+  } else { u:sl_add_entries(u:sl_put(list, take(keys, 0, index), take(values, 0, index))?, keys, values, index + 1) }
+}
+def u:sl_from_vectors(keys, values) {
+  "Build a skip list from equal-length key/value vectors.";
+  if eq(rank(keys), 1) * eq(rank(values), 1) * eq(tally(keys), tally(values)) { u:sl_add_entries(u:sl_empty(), keys, values, 0) } else {
+    err({kind: "entries", message: "keys and values must be equal-length vectors"})
+  }
+}

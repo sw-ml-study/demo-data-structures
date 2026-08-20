@@ -1,18 +1,175 @@
 # Immutable indexed decimal-digit trie with a flat ten-way child table.
-def u:trie_empty() { "Create a trie containing only an unvalued root node."; {nodes: 1, children: fill([10], -1), has_value: [0], values: [0]} }
-def u:trie_cell(handle, digit) { "Return the flat child-table offset for a node handle and decimal digit."; handle * 10 + digit }
-def u:trie_digits_valid_at(digits, index) { "Recursively verify integral decimal digits from index onward."; if eq(index, tally(digits)) { 1 } else { digit = take(digits, 0, index); eq(digit, floor(digit)) * (1 - lt(digit, 0)) * (1 - gt(digit, 9)) * u:trie_digits_valid_at(digits, index + 1) } }
-def u:trie_digits_valid(digits) { "Return one when a key is a rank-one vector of decimal digits."; if eq(rank(digits), 1) { u:trie_digits_valid_at(digits, 0) } else { 0 } }
-def u:trie_append_node(trie) { "Append an unvalued arena node and ten absent child handles."; {nodes: trie.nodes + 1, children: concat(trie.children, fill([10], -1)), has_value: concat(trie.has_value, 0), values: concat(trie.values, 0)} }
-def u:trie_insert_at(trie, handle, digits, index, value) { "Recursively insert or replace a key beginning at one arena handle."; if eq(index, tally(digits)) { {nodes: trie.nodes, children: trie.children, has_value: scatter(trie.has_value, handle, 1), values: scatter(trie.values, handle, value)} } else { digit = take(digits, 0, index); child = take(trie.children, 0, u:trie_cell(handle, digit)); if eq(child, -1) { added = u:trie_append_node(trie); new_handle = trie.nodes; linked = {nodes: added.nodes, children: scatter(added.children, u:trie_cell(handle, digit), new_handle), has_value: added.has_value, values: added.values}; u:trie_insert_at(linked, new_handle, digits, index + 1, value) } else { u:trie_insert_at(trie, child, digits, index + 1, value) } } }
-def u:trie_insert(trie, digits, value) { "Persistently insert a digit-vector key, replacing any value at the same key."; if u:trie_digits_valid(digits) * eq(rank(value), 0) { ok(u:trie_insert_at(trie, 0, digits, 0, value)) } else { err({kind: "entry", message: "key must be decimal digits and value a numeric scalar"}) } }
-def u:trie_exact_at(trie, handle, digits, index) { "Follow a key recursively and return its terminal handle or minus one."; if eq(index, tally(digits)) { if take(trie.has_value, 0, handle) { handle } else { -1 } } else { child = take(trie.children, 0, u:trie_cell(handle, take(digits, 0, index))); if eq(child, -1) { -1 } else { u:trie_exact_at(trie, child, digits, index + 1) } } }
-def u:trie_exact(trie, digits) { "Return the exact key value or a missing-key error."; if u:trie_digits_valid(digits) { handle = u:trie_exact_at(trie, 0, digits, 0); if eq(handle, -1) { err({kind: "missing", message: "exact digit key is absent"}) } else { ok(take(trie.values, 0, handle)) } } else { err({kind: "key", message: "key must be a decimal-digit vector"}) } }
-def u:trie_prefix_at(trie, handle, digits, index, best_found, best_value, best_length) { "Walk a key while retaining the deepest valued prefix encountered."; found = if take(trie.has_value, 0, handle) { 1 } else { best_found }; value = if take(trie.has_value, 0, handle) { take(trie.values, 0, handle) } else { best_value }; length = if take(trie.has_value, 0, handle) { index } else { best_length }; if eq(index, tally(digits)) { {found: found, value: value, length: length} } else { child = take(trie.children, 0, u:trie_cell(handle, take(digits, 0, index))); if eq(child, -1) { {found: found, value: value, length: length} } else { u:trie_prefix_at(trie, child, digits, index + 1, found, value, length) } } }
-def u:trie_longest_prefix(trie, digits) { "Return the deepest stored prefix value and matched digit length, or found zero."; if u:trie_digits_valid(digits) { ok(u:trie_prefix_at(trie, 0, digits, 0, 0, 0, 0)) } else { err({kind: "key", message: "key must be a decimal-digit vector"}) } }
-def u:trie_children_valid_at(trie, index) { "Recursively verify every child handle is absent or within arena bounds."; if eq(index, tally(trie.children)) { 1 } else { handle = take(trie.children, 0, index); (eq(handle, -1) + (eq(handle, floor(handle)) * (1 - lt(handle, 0)) * lt(handle, trie.nodes) * (1 - eq(handle, floor(index / 10))))) * u:trie_children_valid_at(trie, index + 1) } }
-def u:trie_flags_valid_at(flags, index) { "Recursively verify every terminal-value flag is binary."; if eq(index, tally(flags)) { 1 } else { flag = take(flags, 0, index); (eq(flag, 0) + eq(flag, 1)) * u:trie_flags_valid_at(flags, index + 1) } }
-def u:trie_visit_children(trie, handle, digit, visited) { "Depth-first visit all child handles, rejecting cycles and shared nodes."; if eq(digit, 10) { {ok_flag: 1, visited: visited} } else { child = take(trie.children, 0, u:trie_cell(handle, digit)); if eq(child, -1) { u:trie_visit_children(trie, handle, digit + 1, visited) } else { if take(visited, 0, child) { {ok_flag: 0, visited: visited} } else { below = u:trie_visit_node(trie, child, scatter(visited, child, 1)); if below.ok_flag { u:trie_visit_children(trie, handle, digit + 1, below.visited) } else { below } } } } }
-def u:trie_visit_node(trie, handle, visited) { "Visit one trie node and recursively traverse its ten children."; u:trie_visit_children(trie, handle, 0, visited) }
-def u:trie_all_visited(visited, index) { "Return one when every arena node is reachable from the root."; if eq(index, tally(visited)) { 1 } else { take(visited, 0, index) * u:trie_all_visited(visited, index + 1) } }
-def u:trie_valid(trie) { "Validate shapes, binary value flags, handles, reachability, and strict acyclicity."; shapes = eq(tally(trie.children), trie.nodes * 10) * eq(tally(trie.has_value), trie.nodes) * eq(tally(trie.values), trie.nodes) * gt(trie.nodes, 0); if shapes { if u:trie_flags_valid_at(trie.has_value, 0) * u:trie_children_valid_at(trie, 0) { visit = u:trie_visit_node(trie, 0, scatter(fill([trie.nodes], 0), 0, 1)); visit.ok_flag * u:trie_all_visited(visit.visited, 0) } else { 0 } } else { 0 } }
+def u:trie_empty() {
+  "Create a trie containing only an unvalued root node.";
+  {nodes: 1, children: fill([10], -1), has_value: [0], values: [0]}
+}
+def u:trie_cell(handle, digit) {
+  "Return the flat child-table offset for a node handle and decimal digit.";
+  handle * 10 + digit
+}
+def u:trie_digits_valid_at(digits, index) {
+  "Recursively verify integral decimal digits from index onward.";
+  if eq(index, tally(digits)) {
+    1
+  } else {
+    digit = take(digits, 0, index);
+    eq(digit, floor(digit)) * (1 - lt(digit, 0)) * (1 - gt(digit, 9)) * u:trie_digits_valid_at(digits, index + 1)
+  }
+}
+def u:trie_digits_valid(digits) {
+  "Return one when a key is a rank-one vector of decimal digits.";
+  if eq(rank(digits), 1) { u:trie_digits_valid_at(digits, 0) } else {
+    0
+  }
+}
+def u:trie_append_node(trie) {
+  "Append an unvalued arena node and ten absent child handles.";
+  {nodes: trie.nodes + 1, children: concat(trie.children, fill([10], -1)), has_value: concat(trie.has_value, 0), values: concat(trie.values, 0)}
+}
+def u:trie_insert_at(trie, handle, digits, index, value) {
+  "Recursively insert or replace a key beginning at one arena handle.";
+  if eq(index, tally(digits)) {
+    {nodes: trie.nodes, children: trie.children, has_value: scatter(trie.has_value, handle, 1), values: scatter(trie.values, handle, value)}
+  } else {
+    digit = take(digits, 0, index);
+    child = take(trie.children, 0, u:trie_cell(handle, digit));
+    if eq(child, -1) {
+      added = u:trie_append_node(trie);
+      new_handle = trie.nodes;
+      linked = {nodes: added.nodes, children: scatter(added.children, u:trie_cell(handle, digit), new_handle), has_value: added.has_value, values: added.values};
+      u:trie_insert_at(linked, new_handle, digits, index + 1, value)
+    } else { u:trie_insert_at(trie, child, digits, index + 1, value) }
+  }
+}
+def u:trie_insert(trie, digits, value) {
+  "Persistently insert a digit-vector key, replacing any value at the same key.";
+  if u:trie_digits_valid(digits) * eq(rank(value), 0) {
+    ok(u:trie_insert_at(trie, 0, digits, 0, value))
+  } else {
+    err({kind: "entry", message: "key must be decimal digits and value a numeric scalar"})
+  }
+}
+def u:trie_exact_at(trie, handle, digits, index) {
+  "Follow a key recursively and return its terminal handle or minus one.";
+  if eq(index, tally(digits)) {
+    if take(trie.has_value, 0, handle) {
+      handle
+    } else {
+      -1
+    }
+  } else {
+    child = take(trie.children, 0, u:trie_cell(handle, take(digits, 0, index)));
+    if eq(child, -1) {
+      -1
+    } else { u:trie_exact_at(trie, child, digits, index + 1) }
+  }
+}
+def u:trie_exact(trie, digits) {
+  "Return the exact key value or a missing-key error.";
+  if u:trie_digits_valid(digits) {
+    handle = u:trie_exact_at(trie, 0, digits, 0);
+    if eq(handle, -1) {
+      err({kind: "missing", message: "exact digit key is absent"})
+    } else {
+      ok(take(trie.values, 0, handle))
+    }
+  } else {
+    err({kind: "key", message: "key must be a decimal-digit vector"})
+  }
+}
+def u:trie_prefix_at(trie, handle, digits, index, best_found, best_value, best_length) {
+  "Walk a key while retaining the deepest valued prefix encountered.";
+  found = if take(trie.has_value, 0, handle) {
+    1
+  } else {
+    best_found
+  };
+  value = if take(trie.has_value, 0, handle) {
+    take(trie.values, 0, handle)
+  } else {
+    best_value
+  };
+  length = if take(trie.has_value, 0, handle) {
+    index
+  } else {
+    best_length
+  };
+  if eq(index, tally(digits)) {
+    {found: found, value: value, length: length}
+  } else {
+    child = take(trie.children, 0, u:trie_cell(handle, take(digits, 0, index)));
+    if eq(child, -1) {
+      {found: found, value: value, length: length}
+    } else { u:trie_prefix_at(trie, child, digits, index + 1, found, value, length) }
+  }
+}
+def u:trie_longest_prefix(trie, digits) {
+  "Return the deepest stored prefix value and matched digit length, or found zero.";
+  if u:trie_digits_valid(digits) {
+    ok(u:trie_prefix_at(trie, 0, digits, 0, 0, 0, 0))
+  } else {
+    err({kind: "key", message: "key must be a decimal-digit vector"})
+  }
+}
+def u:trie_children_valid_at(trie, index) {
+  "Recursively verify every child handle is absent or within arena bounds.";
+  if eq(index, tally(trie.children)) {
+    1
+  } else {
+    handle = take(trie.children, 0, index);
+    (eq(handle, -1) + (eq(handle, floor(handle)) * (1 - lt(handle, 0)) * lt(handle, trie.nodes) * (1 - eq(handle, floor(index / 10))))) * u:trie_children_valid_at(trie, index + 1)
+  }
+}
+def u:trie_flags_valid_at(flags, index) {
+  "Recursively verify every terminal-value flag is binary.";
+  if eq(index, tally(flags)) {
+    1
+  } else {
+    flag = take(flags, 0, index);
+    (eq(flag, 0) + eq(flag, 1)) * u:trie_flags_valid_at(flags, index + 1)
+  }
+}
+def u:trie_visit_children(trie, handle, digit, visited) {
+  "Depth-first visit all child handles, rejecting cycles and shared nodes.";
+  if eq(digit, 10) {
+    {ok_flag: 1, visited: visited}
+  } else {
+    child = take(trie.children, 0, u:trie_cell(handle, digit));
+    if eq(child, -1) { u:trie_visit_children(trie, handle, digit + 1, visited) } else {
+      if take(visited, 0, child) {
+        {ok_flag: 0, visited: visited}
+      } else {
+        below = u:trie_visit_node(trie, child, scatter(visited, child, 1));
+        if below.ok_flag { u:trie_visit_children(trie, handle, digit + 1, below.visited) } else {
+          below
+        }
+      }
+    }
+  }
+}
+def u:trie_visit_node(trie, handle, visited) {
+  "Visit one trie node and recursively traverse its ten children.";
+  u:trie_visit_children(trie, handle, 0, visited)
+}
+def u:trie_all_visited(visited, index) {
+  "Return one when every arena node is reachable from the root.";
+  if eq(index, tally(visited)) {
+    1
+  } else {
+    take(visited, 0, index) * u:trie_all_visited(visited, index + 1)
+  }
+}
+def u:trie_valid(trie) {
+  "Validate shapes, binary value flags, handles, reachability, and strict acyclicity.";
+  shapes = eq(tally(trie.children), trie.nodes * 10) * eq(tally(trie.has_value), trie.nodes) * eq(tally(trie.values), trie.nodes) * gt(trie.nodes, 0);
+  if shapes {
+    if u:trie_flags_valid_at(trie.has_value, 0) * u:trie_children_valid_at(trie, 0) {
+      visit = u:trie_visit_node(trie, 0, scatter(fill([trie.nodes], 0), 0, 1));
+      visit.ok_flag * u:trie_all_visited(visit.visited, 0)
+    } else {
+      0
+    }
+  } else {
+    0
+  }
+}

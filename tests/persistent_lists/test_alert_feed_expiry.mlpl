@@ -2,7 +2,8 @@
 
 include "src/persistent_lists/alert_feed.mlpl";
 
-def u:feed_from_ids_at(ids, index, feed) { "Build a feed recursively so traversal has the same order as ids.";
+def u:feed_from_ids_at(ids, index, feed) {
+  "Build a feed recursively so traversal has the same order as ids.";
   if lt(index, 0) {
     ok(feed)
   } else {
@@ -11,12 +12,16 @@ def u:feed_from_ids_at(ids, index, feed) { "Build a feed recursively so traversa
   }
 }
 
-def u:feed_from_ids(ids) { "Build a valid immutable feed whose traversal equals ids.";
-  if eq(rank(ids), 1) { u:feed_from_ids_at(ids, tally(ids) - 1, u:empty_feed()) } else { err({kind: "ids", message: "IDs must be a vector"}) }
+def u:feed_from_ids(ids) {
+  "Build a valid immutable feed whose traversal equals ids.";
+  if eq(rank(ids), 1) { u:feed_from_ids_at(ids, tally(ids) - 1, u:empty_feed()) } else {
+    err({kind: "ids", message: "IDs must be a vector"})
+  }
 }
 
 @test {name: "persistent list pop and drop", tags: ["persistent", "unit", "native"]}
-def u:test_pop_drop() { "Verify empty, singleton, suffix, retained-version, and invalid-count behavior.";
+def u:test_pop_drop() {
+  "Verify empty, singleton, suffix, retained-version, and invalid-count behavior.";
   empty = u:empty_feed();
   u:assert_err(u:pop_front(empty), "empty pop should fail")?;
   one = u:feed_from_ids([7])?;
@@ -35,7 +40,8 @@ def u:test_pop_drop() { "Verify empty, singleton, suffix, retained-version, and 
 }
 
 @test {name: "persistent list removal positions", tags: ["persistent", "unit", "native"]}
-def u:test_removal() { "Verify head, middle, tail, duplicate, absent, signed, and zero removal.";
+def u:test_removal() {
+  "Verify head, middle, tail, duplicate, absent, signed, and zero removal.";
   feed = u:feed_from_ids([0, -2, 5, -2, 9])?;
   u:assert_eq(u:alert_ids(u:remove_alert(feed, 0)?)?, [-2, 5, -2, 9], "head removal failed")?;
   u:assert_eq(u:alert_ids(u:remove_alert(feed, 5)?)?, [0, -2, -2, 9], "middle removal failed")?;
@@ -49,7 +55,8 @@ def u:test_removal() { "Verify head, middle, tail, duplicate, absent, signed, an
 }
 
 @test {name: "persistent list cutoff filtering", tags: ["persistent", "unit", "native"]}
-def u:test_filtering() { "Verify mixed, none, all, duplicate, singleton, and malformed cutoff filtering.";
+def u:test_filtering() {
+  "Verify mixed, none, all, duplicate, singleton, and malformed cutoff filtering.";
   feed = u:feed_from_ids([105, 99, 110, 99, -3, 120])?;
   u:assert_eq(u:alert_ids(u:retain_at_least(feed, 100)?)?, [105, 110, 120], "mixed cutoff failed")?;
   u:assert_eq(u:alert_ids(u:retain_at_least(feed, 200)?)?, fill([0], 0), "all-expired cutoff failed")?;

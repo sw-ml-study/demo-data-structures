@@ -3,7 +3,8 @@
 include "src/queues/printer_jobs.mlpl";
 
 @test {name: "printer queue contract", tags: ["printer", "unit", "native"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   empty = u:new_queue();
   u:assert_true(u:valid(empty), "new queue invariant failed")?;
   u:assert_err(u:dequeue(empty), "empty dequeue should fail")?;

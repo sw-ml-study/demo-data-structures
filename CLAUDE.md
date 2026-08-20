@@ -236,6 +236,10 @@ This file gives Claude Code (and other agentrail-aware agents) the rules for thi
   `agentrail complete` in order. Never hand-edit append-only `.agentrail/`
   state.
 - Use TDD for executable behavior. Every commit must leave `just check` green.
+- Every user-defined function in every `.mlpl` file must have a doc string.
+  Before every commit and again before every push, run the canonical formatter
+  across all tracked `.mlpl` files with `../sw-mlpl/scripts/mlpl-fmt.sh` and
+  verify with `--check` that no `.mlpl` file needs formatting.
 - Keep `.mlpl` functions small and pure; thin runners own process/filesystem
   effects. Reuse definitions from `src/` in both demos and tests.
 - Update catalogs and user-facing documentation with each migrated lesson.

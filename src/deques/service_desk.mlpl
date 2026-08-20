@@ -1,41 +1,73 @@
 # Reusable immutable deque implementation for the service-desk demo and tests.
 
-def u:new_deque() { "Create an empty immutable deque."; {data: fill([0], 0), size: 0} }
-def u:valid(deque) { "Check that deque storage is a vector whose tally matches its nonnegative integer size.";
+def u:new_deque() {
+  "Create an empty immutable deque.";
+  {data: fill([0], 0), size: 0}
+}
+def u:valid(deque) {
+  "Check that deque storage is a vector whose tally matches its nonnegative integer size.";
   if eq(rank(deque.data), 1) {
     if eq(deque.size, floor(deque.size)) {
-      if lt(deque.size, 0) { 0 } else { eq(deque.size, tally(deque.data)) }
-    } else { 0 }
-  } else { 0 }
+      if lt(deque.size, 0) {
+        0
+      } else {
+        eq(deque.size, tally(deque.data))
+      }
+    } else {
+      0
+    }
+  } else {
+    0
+  }
 }
-def u:push_front(deque, value) { "Add one numeric scalar to the front of a valid immutable deque.";
+def u:push_front(deque, value) {
+  "Add one numeric scalar to the front of a valid immutable deque.";
   if u:valid(deque) {
-    if eq(rank(value), 0) { ok({data: concat(value, deque.data), size: deque.size + 1}) } else {
+    if eq(rank(value), 0) {
+      ok({data: concat(value, deque.data), size: deque.size + 1})
+    } else {
       err({kind: "value", message: "deque values must be numeric scalars"})
     }
-  } else { err({kind: "representation", message: "invalid deque"}) }
+  } else {
+    err({kind: "representation", message: "invalid deque"})
+  }
 }
-def u:push_back(deque, value) { "Add one numeric scalar to the back of a valid immutable deque.";
+def u:push_back(deque, value) {
+  "Add one numeric scalar to the back of a valid immutable deque.";
   if u:valid(deque) {
-    if eq(rank(value), 0) { ok({data: concat(deque.data, value), size: deque.size + 1}) } else {
+    if eq(rank(value), 0) {
+      ok({data: concat(deque.data, value), size: deque.size + 1})
+    } else {
       err({kind: "value", message: "deque values must be numeric scalars"})
     }
-  } else { err({kind: "representation", message: "invalid deque"}) }
+  } else {
+    err({kind: "representation", message: "invalid deque"})
+  }
 }
-def u:pop_front(deque) { "Remove and return the front value plus the remaining immutable deque.";
+def u:pop_front(deque) {
+  "Remove and return the front value plus the remaining immutable deque.";
   if u:valid(deque) {
-    if eq(deque.size, 0) { err({kind: "empty-deque", message: "cannot pop empty deque"}) } else {
+    if eq(deque.size, 0) {
+      err({kind: "empty-deque", message: "cannot pop empty deque"})
+    } else {
       keep = gt(range(deque.size), 0);
       ok({deque: {data: compress(keep, deque.data), size: deque.size - 1}, value: take(deque.data, 0, 0)})
     }
-  } else { err({kind: "representation", message: "invalid deque"}) }
+  } else {
+    err({kind: "representation", message: "invalid deque"})
+  }
 }
-def u:pop_back(deque) { "Remove and return the back value plus the remaining immutable deque.";
+def u:pop_back(deque) {
+  "Remove and return the back value plus the remaining immutable deque.";
   if u:valid(deque) {
-    if eq(deque.size, 0) { err({kind: "empty-deque", message: "cannot pop empty deque"}) } else {
+    if eq(deque.size, 0) {
+      err({kind: "empty-deque", message: "cannot pop empty deque"})
+    } else {
       last = deque.size - 1;
       keep = lt(range(deque.size), last);
       ok({deque: {data: compress(keep, deque.data), size: last}, value: take(deque.data, 0, last)})
     }
-  } else { err({kind: "representation", message: "invalid deque"}) }
+  } else {
+    err({kind: "representation", message: "invalid deque"})
+  }
 }

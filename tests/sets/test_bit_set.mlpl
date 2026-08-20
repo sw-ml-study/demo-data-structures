@@ -1,7 +1,8 @@
 include "src/sets/feature_flag_bit_set.mlpl";
 
 @test {name: "contract", tags: ["migration", "sets"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   empty = u:new_set(8);
   u:assert_true(u:valid(empty), "empty set invariant failed")?;
   u:assert_eq(u:contains(empty, 3)?, 0, "empty membership should miss")?;

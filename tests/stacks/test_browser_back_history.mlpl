@@ -3,7 +3,8 @@
 include "src/stacks/browser_back_history.mlpl";
 
 @test {name: "browser stack contract", tags: ["browser", "unit", "native"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   empty = u:new_stack();
   u:assert_true(u:valid(empty), "new stack invariant failed")?;
   u:assert_err(u:pop(empty), "empty pop should fail")?;

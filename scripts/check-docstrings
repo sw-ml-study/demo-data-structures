@@ -1,0 +1,26 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+set --
+for tree in src demos tests web; do
+  [ -d "$repo_root/$tree" ] || continue
+  while IFS= read -r file; do set -- "$@" "$file"; done <<EOF
+$(find "$repo_root/$tree" -type f -name '*.mlpl' | sort)
+EOF
+done
+[ "$#" -gt 0 ] || { echo "MLPL docstring audit passed: no MLPL corpus yet."; exit 0; }
+
+awk '
+  /^[[:space:]]*def u:/ { waiting=1; definition=FNR; next }
+  waiting && /^[[:space:]]*$/ { next }
+  waiting {
+    if ($0 !~ /^[[:space:]]*"[^"].*";/) {
+      print FILENAME ":" definition ": user-defined function lacks a leading doc string" > "/dev/stderr"
+      bad=1
+    }
+    waiting=0
+  }
+  END { exit bad ? 1 : 0 }
+' "$@"
+echo "MLPL docstring audit passed."

@@ -3,7 +3,8 @@
 include "src/linked_lists/delivery_route.mlpl";
 
 @test {name: "delivery linked list contract", tags: ["delivery", "unit", "native"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   original = u:route();
   u:assert_true(u:valid(original), "initial linked-list invariant failed")?;
   u:assert_eq(u:traverse(original)?, [101, 202, 303], "initial traversal failed")?;

@@ -15,7 +15,8 @@
 include "src/vectors/chunked_vector.mlpl";
 
 @test {name: "chunked vector contract", tags: ["chunked", "unit", "native"]}
-def u:test_contract() { "Run this standalone example and return its result.";
+def u:test_contract() {
+  "Run this standalone example and return its result.";
   empty = u:new_chunked(3)?;
   u:assert_true(u:valid(empty), "new chunked vector invariant failed")?;
   u:assert_eq(empty.capacity, 3, "initial capacity should equal chunk width")?;

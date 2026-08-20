@@ -2,25 +2,55 @@
 include "src/trees/fenwick_tree.mlpl";
 
 @test {name: "Fenwick construction and cumulative queries", tags: ["trees", "ranges", "native"]}
-def u:test_ft_queries() { "Verify empty, singleton, non-power-of-two, signed, zero, prefix, point, and range sums.";
-  empty = u:ft_build(fill([0], 0))?; u:assert_true(u:ft_valid(empty), "empty Fenwick tree invalid")?; u:assert_eq(u:ft_prefix_sum(empty, 0)?, 0, "empty prefix failed")?; u:assert_eq(u:ft_range_sum(empty, 0, 0)?, 0, "empty range failed")?;
-  one = u:ft_build([-4])?; u:assert_true(u:ft_valid(one), "singleton invalid")?; u:assert_eq(u:ft_prefix_sum(one, 1)?, -4, "singleton prefix failed")?;
-  state = u:ft_build([5, 0, -3, 8, 2])?; u:assert_true(u:ft_valid(state), "non-power-of-two tree invalid")?; u:assert_eq(u:ft_prefix_sum(state, 0)?, 0, "zero prefix failed")?; u:assert_eq(u:ft_prefix_sum(state, 3)?, 2, "interior prefix failed")?; u:assert_eq(u:ft_prefix_sum(state, 5)?, 12, "full prefix failed")?; u:assert_eq(u:ft_range_sum(state, 2, 3)?, -3, "point range failed")?; u:assert_eq(u:ft_range_sum(state, 1, 4)?, 5, "interior range failed")?;
+def u:test_ft_queries() {
+  "Verify empty, singleton, non-power-of-two, signed, zero, prefix, point, and range sums.";
+  empty = u:ft_build(fill([0], 0))?;
+  u:assert_true(u:ft_valid(empty), "empty Fenwick tree invalid")?;
+  u:assert_eq(u:ft_prefix_sum(empty, 0)?, 0, "empty prefix failed")?;
+  u:assert_eq(u:ft_range_sum(empty, 0, 0)?, 0, "empty range failed")?;
+  one = u:ft_build([-4])?;
+  u:assert_true(u:ft_valid(one), "singleton invalid")?;
+  u:assert_eq(u:ft_prefix_sum(one, 1)?, -4, "singleton prefix failed")?;
+  state = u:ft_build([5, 0, -3, 8, 2])?;
+  u:assert_true(u:ft_valid(state), "non-power-of-two tree invalid")?;
+  u:assert_eq(u:ft_prefix_sum(state, 0)?, 0, "zero prefix failed")?;
+  u:assert_eq(u:ft_prefix_sum(state, 3)?, 2, "interior prefix failed")?;
+  u:assert_eq(u:ft_prefix_sum(state, 5)?, 12, "full prefix failed")?;
+  u:assert_eq(u:ft_range_sum(state, 2, 3)?, -3, "point range failed")?;
+  u:assert_eq(u:ft_range_sum(state, 1, 4)?, 5, "interior range failed")?;
   ok({test: "fenwick-queries", cases: 11})
 }
 
 @test {name: "Fenwick persistent point-add updates", tags: ["trees", "persistent", "native"]}
-def u:test_ft_updates() { "Verify point-add aggregates and retained versions with signed deltas.";
-  audit = u:ft_build([4, 7, 0, -2, 9, 3])?; live = u:ft_add(audit, 3, 12)?; revised = u:ft_add(live, 1, -7)?;
-  u:assert_true(u:ft_valid(audit) * u:ft_valid(live) * u:ft_valid(revised), "updated tree invalid")?; u:assert_eq(u:ft_prefix_sum(audit, 6)?, 21, "audit changed")?; u:assert_eq(u:ft_prefix_sum(live, 6)?, 33, "positive update failed")?; u:assert_eq(u:ft_prefix_sum(revised, 6)?, 26, "negative update failed")?; u:assert_eq(u:ft_range_sum(live, 2, 5)?, 19, "updated range failed")?; u:assert_eq(take(audit.values, 0, 3), -2, "retained source value changed")?;
+def u:test_ft_updates() {
+  "Verify point-add aggregates and retained versions with signed deltas.";
+  audit = u:ft_build([4, 7, 0, -2, 9, 3])?;
+  live = u:ft_add(audit, 3, 12)?;
+  revised = u:ft_add(live, 1, -7)?;
+  u:assert_true(u:ft_valid(audit) * u:ft_valid(live) * u:ft_valid(revised), "updated tree invalid")?;
+  u:assert_eq(u:ft_prefix_sum(audit, 6)?, 21, "audit changed")?;
+  u:assert_eq(u:ft_prefix_sum(live, 6)?, 33, "positive update failed")?;
+  u:assert_eq(u:ft_prefix_sum(revised, 6)?, 26, "negative update failed")?;
+  u:assert_eq(u:ft_range_sum(live, 2, 5)?, 19, "updated range failed")?;
+  u:assert_eq(take(audit.values, 0, 3), -2, "retained source value changed")?;
   ok({test: "fenwick-updates", cases: 6})
 }
 
 @test {name: "Fenwick validation and errors", tags: ["trees", "validation", "native"]}
-def u:test_ft_errors() { "Verify malformed construction, indices, ranges, and internal aggregate corruption.";
-  state = u:ft_build([2, 4, 6])?; u:assert_err(u:ft_build(7), "scalar build should fail")?; u:assert_err(u:ft_add(state, -1, 2), "negative update should fail")?; u:assert_err(u:ft_add(state, 3, 2), "past-end update should fail")?; u:assert_err(u:ft_add(state, 1.5, 2), "fractional update should fail")?; u:assert_err(u:ft_add(state, 1, [2]), "vector delta should fail")?;
-  u:assert_err(u:ft_prefix_sum(state, -1), "negative prefix should fail")?; u:assert_err(u:ft_prefix_sum(state, 4), "past-end prefix should fail")?; u:assert_err(u:ft_range_sum(state, 2, 1), "reversed range should fail")?; u:assert_err(u:ft_range_sum(state, [0], 2), "vector range should fail")?;
-  corrupt = {size: state.size, values: state.values, tree: scatter(state.tree, 1, 99)}; u:assert_false(u:ft_valid(corrupt), "corrupt internal tree passed")?;
+def u:test_ft_errors() {
+  "Verify malformed construction, indices, ranges, and internal aggregate corruption.";
+  state = u:ft_build([2, 4, 6])?;
+  u:assert_err(u:ft_build(7), "scalar build should fail")?;
+  u:assert_err(u:ft_add(state, -1, 2), "negative update should fail")?;
+  u:assert_err(u:ft_add(state, 3, 2), "past-end update should fail")?;
+  u:assert_err(u:ft_add(state, 1.5, 2), "fractional update should fail")?;
+  u:assert_err(u:ft_add(state, 1, [2]), "vector delta should fail")?;
+  u:assert_err(u:ft_prefix_sum(state, -1), "negative prefix should fail")?;
+  u:assert_err(u:ft_prefix_sum(state, 4), "past-end prefix should fail")?;
+  u:assert_err(u:ft_range_sum(state, 2, 1), "reversed range should fail")?;
+  u:assert_err(u:ft_range_sum(state, [0], 2), "vector range should fail")?;
+  corrupt = {size: state.size, values: state.values, tree: scatter(state.tree, 1, 99)};
+  u:assert_false(u:ft_valid(corrupt), "corrupt internal tree passed")?;
   ok({test: "fenwick-errors", cases: 10})
 }
 u:run_registered_tests()

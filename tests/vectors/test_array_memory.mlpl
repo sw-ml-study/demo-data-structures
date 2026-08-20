@@ -15,7 +15,8 @@
 include "src/vectors/array_memory.mlpl";
 
 @test {name: "vector array memory contract", tags: ["vector", "unit", "native"]}
-def u:test_contract() { "Run this standalone example and return its result.";
+def u:test_contract() {
+  "Run this standalone example and return its result.";
   original = [10, 20, 30, 40];
 
   first = u:read_at(original, 0)?;

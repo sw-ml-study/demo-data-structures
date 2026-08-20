@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+set --
+for tree in src demos tests web; do
+  [ -d "$repo_root/$tree" ] && set -- "$@" "$repo_root/$tree"
+done
+[ "$#" -gt 0 ] || { echo "MLPL format audit passed: no MLPL corpus yet."; exit 0; }
+"$repo_root/../sw-mlpl/scripts/mlpl-fmt.sh" --check "$@"

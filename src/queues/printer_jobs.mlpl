@@ -1,18 +1,29 @@
 # Shared production definitions for printer queue.
 
-def u:new_queue() { "Create an empty queue value.";
+def u:new_queue() {
+  "Create an empty queue value.";
   {data: fill([0], 0), size: 0}
 }
 
-def u:valid(queue) { "Check whether queue satisfies the valid invariant.";
+def u:valid(queue) {
+  "Check whether queue satisfies the valid invariant.";
   if eq(rank(queue.data), 1) {
     if eq(queue.size, floor(queue.size)) {
-      if lt(queue.size, 0) { 0 } else { eq(queue.size, tally(queue.data)) }
-    } else { 0 }
-  } else { 0 }
+      if lt(queue.size, 0) {
+        0
+      } else {
+        eq(queue.size, tally(queue.data))
+      }
+    } else {
+      0
+    }
+  } else {
+    0
+  }
 }
 
-def u:enqueue(queue, value) { "Add an item at the back and return the updated structure.";
+def u:enqueue(queue, value) {
+  "Add an item at the back and return the updated structure.";
   if u:valid(queue) {
     if eq(rank(value), 0) {
       ok({data: concat(queue.data, value), size: queue.size + 1})
@@ -24,7 +35,8 @@ def u:enqueue(queue, value) { "Add an item at the back and return the updated st
   }
 }
 
-def u:dequeue(queue) { "Remove the next item and return the resulting structure.";
+def u:dequeue(queue) {
+  "Remove the next item and return the resulting structure.";
   if u:valid(queue) {
     if eq(queue.size, 0) {
       err({kind: "empty-queue", message: "cannot dequeue an empty queue"})

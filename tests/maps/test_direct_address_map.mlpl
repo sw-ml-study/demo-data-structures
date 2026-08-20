@@ -1,7 +1,8 @@
 include "src/maps/warehouse_direct_map.mlpl";
 
 @test {name: "contract", tags: ["migration", "maps"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   empty = u:new_map(6);
   u:assert_true(u:valid(empty), "empty map invariant failed")?;
   u:assert_err(u:lookup(empty, 2), "empty lookup should miss")?;

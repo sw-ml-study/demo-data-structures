@@ -2,30 +2,59 @@
 include "src/trees/segment_tree.mlpl";
 
 @test {name: "segment tree construction and queries", tags: ["trees", "ranges", "native"]}
-def u:test_st_queries() { "Verify empty, singleton, non-power-of-two, signed, partial, full, point, and empty ranges.";
-  empty = u:st_build(fill([0], 0))?; u:assert_true(u:st_valid(empty), "empty tree invalid")?; u:assert_eq(u:st_range_sum(empty, 0, 0)?, 0, "empty sum identity failed")?; u:assert_err(u:st_range_minimum(empty, 0, 0), "empty minimum should fail")?;
-  one = u:st_build([-4])?; u:assert_eq(u:st_range_sum(one, 0, 1)?, -4, "singleton sum failed")?; u:assert_eq(u:st_range_minimum(one, 0, 1)?, -4, "singleton minimum failed")?;
-  tree = u:st_build([5, 0, -3, 8, 2])?; u:assert_true(u:st_valid(tree), "non-power-of-two tree invalid")?; u:assert_eq(u:st_range_sum(tree, 0, 5)?, 12, "full sum failed")?; u:assert_eq(u:st_range_minimum(tree, 0, 5)?, -3, "full minimum failed")?;
-  u:assert_eq(u:st_range_sum(tree, 1, 4)?, 5, "partial sum failed")?; u:assert_eq(u:st_range_minimum(tree, 1, 4)?, -3, "partial minimum failed")?; u:assert_eq(u:st_range_sum(tree, 3, 4)?, 8, "single-element sum failed")?;
-  disjoint = u:st_query_steps(tree.left, tree.left.end, tree.end); u:assert_eq([disjoint.count, disjoint.sum, disjoint.has_minimum], [0, 0, 0], "disjoint identity failed")?;
+def u:test_st_queries() {
+  "Verify empty, singleton, non-power-of-two, signed, partial, full, point, and empty ranges.";
+  empty = u:st_build(fill([0], 0))?;
+  u:assert_true(u:st_valid(empty), "empty tree invalid")?;
+  u:assert_eq(u:st_range_sum(empty, 0, 0)?, 0, "empty sum identity failed")?;
+  u:assert_err(u:st_range_minimum(empty, 0, 0), "empty minimum should fail")?;
+  one = u:st_build([-4])?;
+  u:assert_eq(u:st_range_sum(one, 0, 1)?, -4, "singleton sum failed")?;
+  u:assert_eq(u:st_range_minimum(one, 0, 1)?, -4, "singleton minimum failed")?;
+  tree = u:st_build([5, 0, -3, 8, 2])?;
+  u:assert_true(u:st_valid(tree), "non-power-of-two tree invalid")?;
+  u:assert_eq(u:st_range_sum(tree, 0, 5)?, 12, "full sum failed")?;
+  u:assert_eq(u:st_range_minimum(tree, 0, 5)?, -3, "full minimum failed")?;
+  u:assert_eq(u:st_range_sum(tree, 1, 4)?, 5, "partial sum failed")?;
+  u:assert_eq(u:st_range_minimum(tree, 1, 4)?, -3, "partial minimum failed")?;
+  u:assert_eq(u:st_range_sum(tree, 3, 4)?, 8, "single-element sum failed")?;
+  disjoint = u:st_query_steps(tree.left, tree.left.end, tree.end);
+  u:assert_eq([disjoint.count, disjoint.sum, disjoint.has_minimum], [0, 0, 0], "disjoint identity failed")?;
   ok({test: "segment-tree-queries", cases: 12})
 }
 
 @test {name: "segment tree persistent point updates", tags: ["trees", "persistent", "native"]}
-def u:test_st_updates() { "Verify updates rebuild aggregates while retaining prior versions and rejecting bad indices.";
-  audit = u:st_build([4, 7, 0, -2, 9, 3])?; live = u:st_update(audit, 3, 12)?;
-  u:assert_true(u:st_valid(audit) * u:st_valid(live), "update produced invalid version")?; u:assert_eq(audit.sum, 21, "audit sum changed")?; u:assert_eq(live.sum, 35, "live sum incorrect")?;
-  u:assert_eq(u:st_range_minimum(audit, 2, 5)?, -2, "audit minimum changed")?; u:assert_eq(u:st_range_minimum(live, 2, 5)?, 0, "live minimum incorrect")?;
-  u:assert_err(u:st_update(audit, -1, 4), "negative index should fail")?; u:assert_err(u:st_update(audit, 6, 4), "past-end index should fail")?; u:assert_err(u:st_update(audit, 1.5, 4), "fractional index should fail")?; u:assert_err(u:st_update(audit, 1, [4]), "vector value should fail")?; u:assert_err(u:st_update(u:st_empty(), 0, 1), "empty update should fail")?;
+def u:test_st_updates() {
+  "Verify updates rebuild aggregates while retaining prior versions and rejecting bad indices.";
+  audit = u:st_build([4, 7, 0, -2, 9, 3])?;
+  live = u:st_update(audit, 3, 12)?;
+  u:assert_true(u:st_valid(audit) * u:st_valid(live), "update produced invalid version")?;
+  u:assert_eq(audit.sum, 21, "audit sum changed")?;
+  u:assert_eq(live.sum, 35, "live sum incorrect")?;
+  u:assert_eq(u:st_range_minimum(audit, 2, 5)?, -2, "audit minimum changed")?;
+  u:assert_eq(u:st_range_minimum(live, 2, 5)?, 0, "live minimum incorrect")?;
+  u:assert_err(u:st_update(audit, -1, 4), "negative index should fail")?;
+  u:assert_err(u:st_update(audit, 6, 4), "past-end index should fail")?;
+  u:assert_err(u:st_update(audit, 1.5, 4), "fractional index should fail")?;
+  u:assert_err(u:st_update(audit, 1, [4]), "vector value should fail")?;
+  u:assert_err(u:st_update(u:st_empty(), 0, 1), "empty update should fail")?;
   ok({test: "segment-tree-updates", cases: 10})
 }
 
 @test {name: "segment tree validation and range errors", tags: ["trees", "validation", "native"]}
-def u:test_st_validation() { "Verify malformed inputs, invalid ranges, and cached aggregate corruption are rejected.";
-  tree = u:st_build([2, 4, 6])?; u:assert_err(u:st_build(7), "scalar build should fail")?;
-  u:assert_err(u:st_range_sum(tree, -1, 2), "negative range should fail")?; u:assert_err(u:st_range_sum(tree, 2, 1), "reversed range should fail")?; u:assert_err(u:st_range_sum(tree, 0, 4), "past-end range should fail")?; u:assert_err(u:st_range_sum(tree, 0.5, 2), "fractional range should fail")?; u:assert_err(u:st_range_sum(tree, [0], 2), "vector range should fail")?;
-  bad_sum = {empty: 0, leaf: 0, start: tree.start, end: tree.end, count: tree.count, sum: 99, minimum: tree.minimum, left: tree.left, right: tree.right}; bad_min = {empty: 0, leaf: 0, start: tree.start, end: tree.end, count: tree.count, sum: tree.sum, minimum: 99, left: tree.left, right: tree.right};
-  u:assert_false(u:st_valid(bad_sum), "bad sum cache passed")?; u:assert_false(u:st_valid(bad_min), "bad minimum cache passed")?;
+def u:test_st_validation() {
+  "Verify malformed inputs, invalid ranges, and cached aggregate corruption are rejected.";
+  tree = u:st_build([2, 4, 6])?;
+  u:assert_err(u:st_build(7), "scalar build should fail")?;
+  u:assert_err(u:st_range_sum(tree, -1, 2), "negative range should fail")?;
+  u:assert_err(u:st_range_sum(tree, 2, 1), "reversed range should fail")?;
+  u:assert_err(u:st_range_sum(tree, 0, 4), "past-end range should fail")?;
+  u:assert_err(u:st_range_sum(tree, 0.5, 2), "fractional range should fail")?;
+  u:assert_err(u:st_range_sum(tree, [0], 2), "vector range should fail")?;
+  bad_sum = {empty: 0, leaf: 0, start: tree.start, end: tree.end, count: tree.count, sum: 99, minimum: tree.minimum, left: tree.left, right: tree.right};
+  bad_min = {empty: 0, leaf: 0, start: tree.start, end: tree.end, count: tree.count, sum: tree.sum, minimum: 99, left: tree.left, right: tree.right};
+  u:assert_false(u:st_valid(bad_sum), "bad sum cache passed")?;
+  u:assert_false(u:st_valid(bad_min), "bad minimum cache passed")?;
   ok({test: "segment-tree-validation", cases: 8})
 }
 u:run_registered_tests()

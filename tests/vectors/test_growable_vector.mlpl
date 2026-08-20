@@ -15,7 +15,8 @@
 include "src/vectors/growable_vector.mlpl";
 
 @test {name: "growable vector contract", tags: ["growable", "unit", "native"]}
-def u:test_contract() { "Run this standalone example and return its result.";
+def u:test_contract() {
+  "Run this standalone example and return its result.";
   empty = u:new_vector();
   u:assert_true(u:valid(empty), "new vector invariant failed")?;
   u:assert_err(u:pop(empty), "empty pop should fail")?;

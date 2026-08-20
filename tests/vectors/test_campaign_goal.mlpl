@@ -3,7 +3,8 @@
 include "src/vectors/campaign_goal.mlpl";
 
 @test {name: "campaign goal contract", tags: ["campaign", "unit", "native"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   typical = u:first_goal_day(u:vector([120, 75, 210, 95, 160]), 500)?;
   u:assert_eq(typical.day, 4, "typical campaign reached goal on wrong day")?;
   u:assert_eq(typical.cumulative_amount, 500, "typical cumulative amount is wrong")?;

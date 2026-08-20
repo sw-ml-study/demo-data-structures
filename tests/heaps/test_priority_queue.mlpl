@@ -3,7 +3,8 @@
 include "src/heaps/priority_queue.mlpl";
 
 @test {name: "priority queue contract", tags: ["priority", "unit", "native"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   empty = u:empty_heap();
   u:assert_true(u:valid(empty), "empty heap invariant failed")?;
   u:assert_err(u:remove_min(empty), "empty removal should fail")?;

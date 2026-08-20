@@ -17,8 +17,18 @@
 
 include "../../src/caches/recent_route_cache.mlpl";
 
-def u:keys_from(cache, handle, remaining) { "Continue keys from the supplied recursive state."; if eq(handle, -1) + eq(remaining, 0) { fill([0], 0) } else { concat(take(cache.keys, 0, handle), u:keys_from(cache, take(cache.next_handles, 0, handle), remaining - 1)) } }
-def u:recent_keys(cache) { "Return the recent keys result for the supplied cache."; u:keys_from(cache, cache.head, cache.size) }
+def u:keys_from(cache, handle, remaining) {
+  "Continue keys from the supplied recursive state.";
+  if eq(handle, -1) + eq(remaining, 0) {
+    fill([0], 0)
+  } else {
+    concat(take(cache.keys, 0, handle), u:keys_from(cache, take(cache.next_handles, 0, handle), remaining - 1))
+  }
+}
+def u:recent_keys(cache) {
+  "Return the recent keys result for the supplied cache.";
+  u:keys_from(cache, cache.head, cache.size)
+}
 
 morning = u:put(u:put(u:put(u:new_cache(3), -2, 20), 5, 0), 9, 90);
 hit = unwrap(u:access(morning, -2));

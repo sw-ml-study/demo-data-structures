@@ -1,9 +1,13 @@
 include "src/caches/recent_route_cache.mlpl";
 
 @test {name: "contract", tags: ["migration", "caches"]}
-def u:test_contract() { "Run this script's conformance assertions.";
-  empty_cache = u:new_cache(3); u:assert_err(u:access(empty_cache, 1), "empty access should miss")?;
-  one = u:put(empty_cache, 1, 10); two = u:put(one, 2, 0); three = u:put(two, -3, -30);
+def u:test_contract() {
+  "Run this script's conformance assertions.";
+  empty_cache = u:new_cache(3);
+  u:assert_err(u:access(empty_cache, 1), "empty access should miss")?;
+  one = u:put(empty_cache, 1, 10);
+  two = u:put(one, 2, 0);
+  three = u:put(two, -3, -30);
   u:assert_eq(u:forward(three), [-3, 2, 1], "front insertion order failed")?;
   u:assert_eq(u:reverse(three), [1, 2, -3], "reverse traversal failed")?;
   middle_hit = u:access(three, 2)?;
@@ -21,7 +25,8 @@ def u:test_contract() { "Run this script's conformance assertions.";
   u:assert_eq(u:forward(evicting_cache), [4, 2, 1], "eviction order failed")?;
   u:assert_eq(u:find(evicting_cache, 4), evicting_cache.head, "lookup/list disagreement")?;
   u:assert_eq(u:forward(three), [-3, 2, 1], "later operations mutated retained version")?;
-  single1 = u:put(u:new_cache(1), 7, 70); single2 = u:put(single1, 8, 80);
+  single1 = u:put(u:new_cache(1), 7, 70);
+  single2 = u:put(single1, 8, 80);
   u:assert_eq(u:forward(single2), [8], "capacity-one eviction failed")?;
   u:assert_err(u:access(single2, 7), "capacity-one retained victim")?;
   u:assert_true(u:valid(evicting_cache), "valid cache failed invariant")?;

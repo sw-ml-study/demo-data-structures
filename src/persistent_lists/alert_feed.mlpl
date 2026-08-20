@@ -1,8 +1,12 @@
 # Shared production definitions for persistent alert list.
 
-def u:empty_feed() { "Create an empty feed value."; {empty: 1} }
+def u:empty_feed() {
+  "Create an empty feed value.";
+  {empty: 1}
+}
 
-def u:valid(feed) { "Check whether feed satisfies the valid invariant.";
+def u:valid(feed) {
+  "Check whether feed satisfies the valid invariant.";
   marker_ok = eq(rank(feed.empty), 0) * (eq(feed.empty, 0) + eq(feed.empty, 1));
   if marker_ok {
     if feed.empty {
@@ -10,10 +14,13 @@ def u:valid(feed) { "Check whether feed satisfies the valid invariant.";
     } else {
       eq(rank(feed.alert_id), 0) * u:valid(feed.next)
     }
-  } else { 0 }
+  } else {
+    0
+  }
 }
 
-def u:prepend(feed, alert_id) { "Add an item at the front and return the updated structure.";
+def u:prepend(feed, alert_id) {
+  "Add an item at the front and return the updated structure.";
   if u:valid(feed) {
     if eq(rank(alert_id), 0) {
       ok({empty: 0, alert_id: alert_id, next: feed})
@@ -25,7 +32,8 @@ def u:prepend(feed, alert_id) { "Add an item at the front and return the updated
   }
 }
 
-def u:alert_ids(feed) { "Return the alert ids result for the supplied feed.";
+def u:alert_ids(feed) {
+  "Return the alert ids result for the supplied feed.";
   if u:valid(feed) {
     if feed.empty {
       ok(fill([0], 0))
@@ -38,7 +46,8 @@ def u:alert_ids(feed) { "Return the alert ids result for the supplied feed.";
   }
 }
 
-def u:pop_front(feed) { "Remove the front alert and return its ID plus the remaining immutable feed.";
+def u:pop_front(feed) {
+  "Remove the front alert and return its ID plus the remaining immutable feed.";
   if u:valid(feed) {
     if feed.empty {
       err({kind: "empty", message: "cannot pop an empty feed"})
@@ -50,7 +59,8 @@ def u:pop_front(feed) { "Remove the front alert and return its ID plus the remai
   }
 }
 
-def u:drop_items(feed, count) { "Drop count alerts from the front, returning an immutable suffix feed.";
+def u:drop_items(feed, count) {
+  "Drop count alerts from the front, returning an immutable suffix feed.";
   if u:valid(feed) {
     if eq(rank(count), 0) * eq(count, floor(count)) * (gt(count, 0) + eq(count, 0)) {
       if eq(count, 0) {
@@ -70,7 +80,8 @@ def u:drop_items(feed, count) { "Drop count alerts from the front, returning an 
   }
 }
 
-def u:remove_alert(feed, alert_id) { "Return a feed with every occurrence of alert_id removed while preserving order.";
+def u:remove_alert(feed, alert_id) {
+  "Return a feed with every occurrence of alert_id removed while preserving order.";
   if u:valid(feed) {
     if eq(rank(alert_id), 0) {
       if feed.empty {
@@ -91,7 +102,8 @@ def u:remove_alert(feed, alert_id) { "Return a feed with every occurrence of ale
   }
 }
 
-def u:retain_at_least(feed, minimum_id) { "Return alerts whose numeric IDs are at least minimum_id, preserving feed order.";
+def u:retain_at_least(feed, minimum_id) {
+  "Return alerts whose numeric IDs are at least minimum_id, preserving feed order.";
   if u:valid(feed) {
     if eq(rank(minimum_id), 0) {
       if feed.empty {

@@ -1,7 +1,8 @@
 include "src/maps/sparse_meter_hash_map.mlpl";
 
 @test {name: "contract", tags: ["migration", "maps"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   empty = u:new_map(5);
   u:assert_true(u:valid(empty), "empty invariant failed")?;
   u:assert_err(u:lookup(empty, 0), "empty lookup should miss")?;

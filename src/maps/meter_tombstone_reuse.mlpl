@@ -1,34 +1,122 @@
-def u:new_map(c) { "Create an empty map value."; {states: fill([c], 0), keys: fill([c], 0), values: fill([c], 0), capacity: c, size: 0} }
-def u:norm(k) { "Return the norm result for the supplied k."; if lt(k, 0) { 0 - k * 2 - 1 } else { k * 2 } }
-def u:rem(v, d) { "Return the rem result for the supplied v, d."; v - floor(v / d) * d }
-def u:bucket(k, c) { "Return the bucket result for the supplied k, c."; u:rem(u:norm(k) * 37 + 17, c) }
-def u:valid_key(k) { "Check whether k satisfies the valid key invariant."; if eq(rank(k), 0) { eq(k, floor(k)) * lt(abs(k), 1000001) } else { 0 } }
-def u:find_insert(map, key, probe, deleted) { "Find insert in the supplied structure.";
-  if eq(probe, map.capacity) { if gt(deleted, -1) { ok({index: deleted, found: 0}) } else { err({kind: "full", message: "full"}) } } else {
-    index = u:rem(u:bucket(key, map.capacity) + probe, map.capacity); state = take(map.states, 0, index);
-    if eq(state, 0) { if gt(deleted, -1) { ok({index: deleted, found: 0}) } else { ok({index: index, found: 0}) } } else {
-      if eq(state, 1) * eq(take(map.keys, 0, index), key) { ok({index: index, found: 1}) } else {
-        next_deleted = if eq(state, 2) * eq(deleted, -1) { index } else { deleted };
+def u:new_map(c) {
+  "Create an empty map value.";
+  {states: fill([c], 0), keys: fill([c], 0), values: fill([c], 0), capacity: c, size: 0}
+}
+def u:norm(k) {
+  "Return the norm result for the supplied k.";
+  if lt(k, 0) {
+    0 - k * 2 - 1
+  } else {
+    k * 2
+  }
+}
+def u:rem(v, d) {
+  "Return the rem result for the supplied v, d.";
+  v - floor(v / d) * d
+}
+def u:bucket(k, c) {
+  "Return the bucket result for the supplied k, c.";
+  u:rem(u:norm(k) * 37 + 17, c)
+}
+def u:valid_key(k) {
+  "Check whether k satisfies the valid key invariant.";
+  if eq(rank(k), 0) {
+    eq(k, floor(k)) * lt(abs(k), 1000001)
+  } else {
+    0
+  }
+}
+def u:find_insert(map, key, probe, deleted) {
+  "Find insert in the supplied structure.";
+  if eq(probe, map.capacity) {
+    if gt(deleted, -1) {
+      ok({index: deleted, found: 0})
+    } else {
+      err({kind: "full", message: "full"})
+    }
+  } else {
+    index = u:rem(u:bucket(key, map.capacity) + probe, map.capacity);
+    state = take(map.states, 0, index);
+    if eq(state, 0) {
+      if gt(deleted, -1) {
+        ok({index: deleted, found: 0})
+      } else {
+        ok({index: index, found: 0})
+      }
+    } else {
+      if eq(state, 1) * eq(take(map.keys, 0, index), key) {
+        ok({index: index, found: 1})
+      } else {
+        next_deleted = if eq(state, 2) * eq(deleted, -1) {
+          index
+        } else {
+          deleted
+        };
         u:find_insert(map, key, probe + 1, next_deleted)
       }
     }
   }
 }
-def u:insert(map, key, value) { "Add the supplied item and return the updated structure.";
-  if u:valid_key(key) { slot = u:find_insert(map, key, 0, -1)?; ok({states: scatter(map.states, slot.index, 1), keys: scatter(map.keys, slot.index, key), values: scatter(map.values, slot.index, value), capacity: map.capacity, size: map.size + (1 - slot.found)}) } else { err({kind: "key", message: "invalid"}) }
+def u:insert(map, key, value) {
+  "Add the supplied item and return the updated structure.";
+  if u:valid_key(key) {
+    slot = u:find_insert(map, key, 0, -1)?;
+    ok({states: scatter(map.states, slot.index, 1), keys: scatter(map.keys, slot.index, key), values: scatter(map.values, slot.index, value), capacity: map.capacity, size: map.size + (1 - slot.found)})
+  } else {
+    err({kind: "key", message: "invalid"})
+  }
 }
-def u:find_key(map, key, probe) { "Find key in the supplied structure.";
-  if eq(probe, map.capacity) { err({kind: "missing", message: "absent"}) } else {
-    index = u:rem(u:bucket(key, map.capacity) + probe, map.capacity); state = take(map.states, 0, index);
-    if eq(state, 0) { err({kind: "missing", message: "absent"}) } else {
-      if eq(state, 1) * eq(take(map.keys, 0, index), key) { ok(index) } else { u:find_key(map, key, probe + 1) }
+def u:find_key(map, key, probe) {
+  "Find key in the supplied structure.";
+  if eq(probe, map.capacity) {
+    err({kind: "missing", message: "absent"})
+  } else {
+    index = u:rem(u:bucket(key, map.capacity) + probe, map.capacity);
+    state = take(map.states, 0, index);
+    if eq(state, 0) {
+      err({kind: "missing", message: "absent"})
+    } else {
+      if eq(state, 1) * eq(take(map.keys, 0, index), key) {
+        ok(index)
+      } else { u:find_key(map, key, probe + 1) }
     }
   }
 }
-def u:lookup(map, key) { "Find the requested value or node in the supplied structure."; if u:valid_key(key) { ok(take(map.values, 0, u:find_key(map, key, 0)?)) } else { err({kind: "key", message: "invalid"}) } }
-def u:remove(map, key) { "Remove the supplied item and return the updated structure.";
-  if u:valid_key(key) { index = u:find_key(map, key, 0)?; ok({states: scatter(map.states, index, 2), keys: map.keys, values: map.values, capacity: map.capacity, size: map.size - 1}) } else { err({kind: "key", message: "invalid"}) }
+def u:lookup(map, key) {
+  "Find the requested value or node in the supplied structure.";
+  if u:valid_key(key) {
+    ok(take(map.values, 0, u:find_key(map, key, 0)?))
+  } else {
+    err({kind: "key", message: "invalid"})
+  }
 }
-def u:count_occupied(states, i) { "Return the count occupied result for the supplied states, i."; if eq(i, tally(states)) { 0 } else { eq(take(states, 0, i), 1) + u:count_occupied(states, i + 1) } }
-def u:valid_states(states, i) { "Check whether states, i satisfies the valid states invariant."; if eq(i, tally(states)) { 1 } else { s = take(states, 0, i); (eq(s, 0) + eq(s, 1) + eq(s, 2)) * u:valid_states(states, i + 1) } }
-def u:valid(map) { "Check whether map satisfies the valid invariant."; eq(map.size, u:count_occupied(map.states, 0)) * u:valid_states(map.states, 0) }
+def u:remove(map, key) {
+  "Remove the supplied item and return the updated structure.";
+  if u:valid_key(key) {
+    index = u:find_key(map, key, 0)?;
+    ok({states: scatter(map.states, index, 2), keys: map.keys, values: map.values, capacity: map.capacity, size: map.size - 1})
+  } else {
+    err({kind: "key", message: "invalid"})
+  }
+}
+def u:count_occupied(states, i) {
+  "Return the count occupied result for the supplied states, i.";
+  if eq(i, tally(states)) {
+    0
+  } else {
+    eq(take(states, 0, i), 1) + u:count_occupied(states, i + 1)
+  }
+}
+def u:valid_states(states, i) {
+  "Check whether states, i satisfies the valid states invariant.";
+  if eq(i, tally(states)) {
+    1
+  } else {
+    s = take(states, 0, i);
+    (eq(s, 0) + eq(s, 1) + eq(s, 2)) * u:valid_states(states, i + 1)
+  }
+}
+def u:valid(map) {
+  "Check whether map satisfies the valid invariant.";
+  eq(map.size, u:count_occupied(map.states, 0)) * u:valid_states(map.states, 0)
+}

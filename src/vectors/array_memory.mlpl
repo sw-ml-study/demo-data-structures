@@ -1,14 +1,24 @@
 # Shared production definitions for vector array memory.
 
-def u:valid_index(v, i) { "Check whether v, i satisfies the valid index invariant.";
+def u:valid_index(v, i) {
+  "Check whether v, i satisfies the valid index invariant.";
   if eq(rank(v), 1) {
     if eq(i, floor(i)) {
-      if lt(i, 0) { 0 } else { lt(i, tally(v)) }
-    } else { 0 }
-  } else { 0 }
+      if lt(i, 0) {
+        0
+      } else {
+        lt(i, tally(v))
+      }
+    } else {
+      0
+    }
+  } else {
+    0
+  }
 }
 
-def u:read_at(v, i) { "Find at in the supplied structure.";
+def u:read_at(v, i) {
+  "Find at in the supplied structure.";
   if u:valid_index(v, i) {
     ok(take(v, 0, i))
   } else {
@@ -16,7 +26,8 @@ def u:read_at(v, i) { "Find at in the supplied structure.";
   }
 }
 
-def u:write_at(v, i, value) { "Add the supplied item and return the updated structure.";
+def u:write_at(v, i, value) {
+  "Add the supplied item and return the updated structure.";
   if u:valid_index(v, i) {
     ok(scatter(v, i, value))
   } else {
@@ -24,7 +35,8 @@ def u:write_at(v, i, value) { "Add the supplied item and return the updated stru
   }
 }
 
-def u:swap_at(v, i, j) { "Continue swap from the supplied recursive state.";
+def u:swap_at(v, i, j) {
+  "Continue swap from the supplied recursive state.";
   left = u:read_at(v, i)?;
   right = u:read_at(v, j)?;
   once = u:write_at(v, i, right)?;

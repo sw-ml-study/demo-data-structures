@@ -1,9 +1,13 @@
 include "src/maps/chained_sensor_registry.mlpl";
 
 @test {name: "contract", tags: ["migration", "maps"]}
-def u:test_contract() { "Run this script's conformance assertions.";
-  empty_map = u:new_map(3); u:assert_err(u:get(empty_map, 9), "empty lookup should fail")?;
-  one = u:put(empty_map, 0, 10); two = u:put(one, 3, 0); three = u:put(two, 6, 60);
+def u:test_contract() {
+  "Run this script's conformance assertions.";
+  empty_map = u:new_map(3);
+  u:assert_err(u:get(empty_map, 9), "empty lookup should fail")?;
+  one = u:put(empty_map, 0, 10);
+  two = u:put(one, 3, 0);
+  three = u:put(two, 6, 60);
   u:assert_eq(three.capacity, 3, "load one should not resize")?;
   u:assert_eq(u:get(three, 3)?, 0, "stored zero lost in chain")?;
   u:assert_eq(three.size, 3, "collision inserts changed size")?;

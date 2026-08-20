@@ -13,6 +13,8 @@ audit:
     ./scripts/validate-catalog catalog/demos.tsv
     ./scripts/validate-catalog catalog/tests.tsv
     ./scripts/check-web-standalone
+    ./scripts/check-format
+    ./scripts/check-docstrings
     ./tests/test-bootstrap
     ./tests/test-sequential-migration
     ./tests/test-associative-priority-migration

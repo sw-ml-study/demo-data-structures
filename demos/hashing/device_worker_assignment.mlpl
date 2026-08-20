@@ -18,8 +18,11 @@
 
 include "../../src/hashing/device_worker_assignment.mlpl";
 
-def u:assign(keys, capacity, index, buckets) { "Return the assign result for the supplied keys, capacity, index, buckets.";
-  if eq(index, tally(keys)) { buckets } else {
+def u:assign(keys, capacity, index, buckets) {
+  "Return the assign result for the supplied keys, capacity, index, buckets.";
+  if eq(index, tally(keys)) {
+    buckets
+  } else {
     hashed = u:hash_bucket(take(keys, 0, index), capacity)?;
     u:assign(keys, capacity, index + 1, concat(buckets, hashed.bucket))
   }

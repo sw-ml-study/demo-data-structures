@@ -1,7 +1,8 @@
 include "src/hashing/device_worker_assignment.mlpl";
 
 @test {name: "contract", tags: ["migration", "hashing"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   u:assert_eq(u:hash_bucket(0, 8)?.bucket, 1, "golden hash for zero changed")?;
   u:assert_eq(u:hash_bucket(1, 8)?.bucket, 3, "golden hash for one changed")?;
   u:assert_eq(u:hash_bucket(-1, 8)?.bucket, 6, "golden hash for negative one changed")?;

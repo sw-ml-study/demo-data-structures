@@ -1,44 +1,98 @@
-def u:new_map(capacity) { "Create an empty map value."; {states: fill([capacity], 0), keys: fill([capacity], 0), values: fill([capacity], 0), capacity: capacity, size: 0} }
-def u:normalize(key) { "Return the normalize result for the supplied key."; if lt(key, 0) { 0 - key * 2 - 1 } else { key * 2 } }
-def u:rem(value, divisor) { "Return the rem result for the supplied value, divisor."; value - floor(value / divisor) * divisor }
-def u:bucket(key, capacity) { "Return the bucket result for the supplied key, capacity."; u:rem(u:normalize(key) * 37 + 17, capacity) }
-def u:valid_key(key) { "Check whether key satisfies the valid key invariant.";
-  if eq(rank(key), 0) { if eq(key, floor(key)) { lt(abs(key), 1000001) } else { 0 } } else { 0 }
+def u:new_map(capacity) {
+  "Create an empty map value.";
+  {states: fill([capacity], 0), keys: fill([capacity], 0), values: fill([capacity], 0), capacity: capacity, size: 0}
 }
-def u:find_slot(map, key, probe) { "Find slot in the supplied structure.";
-  if eq(probe, map.capacity) { err({kind: "full", message: "full"}) } else {
+def u:normalize(key) {
+  "Return the normalize result for the supplied key.";
+  if lt(key, 0) {
+    0 - key * 2 - 1
+  } else {
+    key * 2
+  }
+}
+def u:rem(value, divisor) {
+  "Return the rem result for the supplied value, divisor.";
+  value - floor(value / divisor) * divisor
+}
+def u:bucket(key, capacity) {
+  "Return the bucket result for the supplied key, capacity.";
+  u:rem(u:normalize(key) * 37 + 17, capacity)
+}
+def u:valid_key(key) {
+  "Check whether key satisfies the valid key invariant.";
+  if eq(rank(key), 0) {
+    if eq(key, floor(key)) {
+      lt(abs(key), 1000001)
+    } else {
+      0
+    }
+  } else {
+    0
+  }
+}
+def u:find_slot(map, key, probe) {
+  "Find slot in the supplied structure.";
+  if eq(probe, map.capacity) {
+    err({kind: "full", message: "full"})
+  } else {
     index = u:rem(u:bucket(key, map.capacity) + probe, map.capacity);
-    if eq(take(map.states, 0, index), 0) { ok({index: index, found: 0}) } else {
-      if eq(take(map.keys, 0, index), key) { ok({index: index, found: 1}) } else { u:find_slot(map, key, probe + 1) }
+    if eq(take(map.states, 0, index), 0) {
+      ok({index: index, found: 0})
+    } else {
+      if eq(take(map.keys, 0, index), key) {
+        ok({index: index, found: 1})
+      } else { u:find_slot(map, key, probe + 1) }
     }
   }
 }
-def u:insert(map, key, value) { "Add the supplied item and return the updated structure.";
+def u:insert(map, key, value) {
+  "Add the supplied item and return the updated structure.";
   if u:valid_key(key) {
     slot = u:find_slot(map, key, 0)?;
     ok({states: scatter(map.states, slot.index, 1), keys: scatter(map.keys, slot.index, key), values: scatter(map.values, slot.index, value), capacity: map.capacity, size: map.size + (1 - slot.found)})
-  } else { err({kind: "key", message: "invalid key"}) }
+  } else {
+    err({kind: "key", message: "invalid key"})
+  }
 }
-def u:lookup_at(map, key, probe) { "Find at in the supplied structure.";
-  if eq(probe, map.capacity) { err({kind: "missing", message: "absent"}) } else {
+def u:lookup_at(map, key, probe) {
+  "Find at in the supplied structure.";
+  if eq(probe, map.capacity) {
+    err({kind: "missing", message: "absent"})
+  } else {
     index = u:rem(u:bucket(key, map.capacity) + probe, map.capacity);
-    if eq(take(map.states, 0, index), 0) { err({kind: "missing", message: "absent"}) } else {
-      if eq(take(map.keys, 0, index), key) { ok(take(map.values, 0, index)) } else { u:lookup_at(map, key, probe + 1) }
+    if eq(take(map.states, 0, index), 0) {
+      err({kind: "missing", message: "absent"})
+    } else {
+      if eq(take(map.keys, 0, index), key) {
+        ok(take(map.values, 0, index))
+      } else { u:lookup_at(map, key, probe + 1) }
     }
   }
 }
-def u:lookup(map, key) { "Find the requested value or node in the supplied structure.";
-  if u:valid_key(key) { u:lookup_at(map, key, 0) } else { err({kind: "key", message: "invalid key"}) }
+def u:lookup(map, key) {
+  "Find the requested value or node in the supplied structure.";
+  if u:valid_key(key) { u:lookup_at(map, key, 0) } else {
+    err({kind: "key", message: "invalid key"})
+  }
 }
-def u:count_states(states, index) { "Return the count states result for the supplied states, index.";
-  if eq(index, tally(states)) { 0 } else { take(states, 0, index) + u:count_states(states, index + 1) }
+def u:count_states(states, index) {
+  "Return the count states result for the supplied states, index.";
+  if eq(index, tally(states)) {
+    0
+  } else {
+    take(states, 0, index) + u:count_states(states, index + 1)
+  }
 }
-def u:valid_states(states, index) { "Check whether states, index satisfies the valid states invariant.";
-  if eq(index, tally(states)) { 1 } else {
+def u:valid_states(states, index) {
+  "Check whether states, index satisfies the valid states invariant.";
+  if eq(index, tally(states)) {
+    1
+  } else {
     state = take(states, 0, index);
     (eq(state, 0) + eq(state, 1)) * u:valid_states(states, index + 1)
   }
 }
-def u:valid(map) { "Check whether map satisfies the valid invariant.";
+def u:valid(map) {
+  "Check whether map satisfies the valid invariant.";
   eq(map.capacity, tally(map.states)) * eq(map.capacity, tally(map.keys)) * eq(map.capacity, tally(map.values)) * eq(map.size, u:count_states(map.states, 0)) * u:valid_states(map.states, 0)
 }

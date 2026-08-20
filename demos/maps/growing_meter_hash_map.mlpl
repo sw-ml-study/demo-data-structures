@@ -14,8 +14,12 @@
 
 include "../../src/maps/growing_meter_hash_map.mlpl";
 
-map1 = unwrap(u:put(u:new_map(5), 0, 100)); map2 = unwrap(u:put(map1, 5, 200)); map3 = unwrap(u:put(map2, 10, 0));
-deleted = unwrap(u:remove(map3, 5)); restored = unwrap(u:put(deleted, 15, 400)); grown = unwrap(u:put(restored, 20, 500));
+map1 = unwrap(u:put(u:new_map(5), 0, 100));
+map2 = unwrap(u:put(map1, 5, 200));
+map3 = unwrap(u:put(map2, 10, 0));
+deleted = unwrap(u:remove(map3, 5));
+restored = unwrap(u:put(deleted, 15, 400));
+grown = unwrap(u:put(restored, 20, 500));
 print("Problem: keep sparse meter readings available while the table grows and removes tombstones.");
 print("Solution: crossing 75% occupancy rehashes live entries into a larger table.");
 {old_capacity: restored.capacity, new_capacity: grown.capacity, meter_10_zero: unwrap(u:get(grown, 10)), meter_15: unwrap(u:get(grown, 15)), meter_20: unwrap(u:get(grown, 20)), old_snapshot_size: restored.size}

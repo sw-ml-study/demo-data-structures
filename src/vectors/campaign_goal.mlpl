@@ -1,10 +1,12 @@
 # Shared production definitions for campaign goal.
 
-def u:vector(data) { "Return the vector result for the supplied data.";
+def u:vector(data) {
+  "Return the vector result for the supplied data.";
   {data: data, size: tally(data)}
 }
 
-def u:first_goal_day(vector, goal) { "Return the first goal day result for the supplied vector, goal.";
+def u:first_goal_day(vector, goal) {
+  "Return the first goal day result for the supplied vector, goal.";
   totals = running_sum(vector.data);
   reached = gt(totals, goal) + eq(totals, goal);
   matching_days = compress(reached, range(vector.size));
@@ -13,18 +15,20 @@ def u:first_goal_day(vector, goal) { "Return the first goal day result for the s
   } else {
     index = take(matching_days, 0, 0);
     ok({
-      day: index + 1,
-      goal: goal,
-      cumulative_amount: take(totals, 0, index),
-      cumulative_totals: totals
-    })
+        day: index + 1,
+        goal: goal,
+        cumulative_amount: take(totals, 0, index),
+        cumulative_totals: totals
+      })
   }
 }
 
-def u:new_vector() { "Create an empty vector value.";
+def u:new_vector() {
+  "Create an empty vector value.";
   {data: fill([0], 0), size: 0}
 }
 
-def u:append(vector, value) { "Add the supplied item and return the updated structure.";
+def u:append(vector, value) {
+  "Add the supplied item and return the updated structure.";
   {data: concat(vector.data, value), size: vector.size + 1}
 }

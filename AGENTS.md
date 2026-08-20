@@ -239,6 +239,10 @@ This project uses **agentrail** for session-based saga/step orchestration.
 - Follow `agentrail next`, `agentrail begin`, work, test, commit, and
   `agentrail complete` in order; never hand-edit append-only saga state.
 - Use TDD, shared definitions under `src/`, and keep `just check` green.
+- Every user-defined function in every `.mlpl` file must have a doc string.
+  Before every commit and again before every push, run the canonical formatter
+  across all tracked `.mlpl` files with `../sw-mlpl/scripts/mlpl-fmt.sh` and
+  verify with `--check` that no `.mlpl` file needs formatting.
 - Keep decisions pure and runners thin. Update catalogs and documentation with
   every lesson. Prefer `just`; do not add a Makefile without an explicit need.
 - Use `$MLPL` or the adjacent release binary; never install over stable tools

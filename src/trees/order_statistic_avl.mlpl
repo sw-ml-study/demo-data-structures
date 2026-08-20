@@ -1,16 +1,158 @@
 # Immutable order-statistic AVL tree with cached heights and subtree sizes.
-def u:os_empty() { "Create an empty order-statistic AVL tree."; {empty: 1, height: 0, size: 0} }
-def u:os_higher(a, b) { "Return the greater of two numeric scalars."; if gt(a, b) { a } else { b } }
-def u:os_make(key, left, right) { "Build a node with derived height and subtree size caches."; {empty: 0, key: key, left: left, right: right, height: 1 + u:os_higher(left.height, right.height), size: 1 + left.size + right.size} }
-def u:os_factor(tree) { "Return a node's left-minus-right height balance."; if tree.empty { 0 } else { tree.left.height - tree.right.height } }
-def u:os_rotate_right(top) { "Apply an immutable right rotation and recompute caches."; pivot = top.left; u:os_make(pivot.key, pivot.left, u:os_make(top.key, pivot.right, top.right)) }
-def u:os_rotate_left(top) { "Apply an immutable left rotation and recompute caches."; pivot = top.right; u:os_make(pivot.key, u:os_make(top.key, top.left, pivot.left), pivot.right) }
-def u:os_rebalance(tree, key) { "Restore AVL balance after inserting key."; balance = u:os_factor(tree); if gt(balance, 1) { if lt(key, tree.left.key) { u:os_rotate_right(tree) } else { u:os_rotate_right(u:os_make(tree.key, u:os_rotate_left(tree.left), tree.right)) } } else { if lt(balance, -1) { if gt(key, tree.right.key) { u:os_rotate_left(tree) } else { u:os_rotate_left(u:os_make(tree.key, tree.left, u:os_rotate_right(tree.right))) } } else { tree } } }
-def u:os_insert(tree, key) { "Insert a scalar key persistently, treating duplicates as unchanged."; if eq(rank(key), 0) { if tree.empty { ok(u:os_make(key, u:os_empty(), u:os_empty())) } else { if lt(key, tree.key) { ok(u:os_rebalance(u:os_make(tree.key, u:os_insert(tree.left, key)?, tree.right), key)) } else { if gt(key, tree.key) { ok(u:os_rebalance(u:os_make(tree.key, tree.left, u:os_insert(tree.right, key)?), key)) } else { ok(tree) } } } } else { err({kind: "key", message: "keys must be numeric scalars"}) } }
-def u:os_select(tree, index) { "Return the zero-based index-th key using cached subtree sizes."; if eq(rank(index), 0) * eq(index, floor(index)) * (1 - lt(index, 0)) { if tree.empty + (1 - lt(index, tree.size)) { err({kind: "index", message: "select index is outside the tree"}) } else { left_size = tree.left.size; if lt(index, left_size) { u:os_select(tree.left, index) } else { if eq(index, left_size) { ok(tree.key) } else { u:os_select(tree.right, index - left_size - 1) } } } } else { err({kind: "index", message: "select index must be a nonnegative integer scalar"}) } }
-def u:os_rank(tree, key) { "Return the sorted insertion position, or number of stored keys below key."; if eq(rank(key), 0) { if tree.empty { ok(0) } else { if lt(key, tree.key) { u:os_rank(tree.left, key) } else { if gt(key, tree.key) { ok(tree.left.size + 1 + u:os_rank(tree.right, key)?) } else { ok(tree.left.size) } } } } else { err({kind: "key", message: "rank key must be a numeric scalar"}) } }
-def u:os_inorder(tree) { "Return all keys in ascending order."; if tree.empty { fill([0], 0) } else { concat(u:os_inorder(tree.left), concat(tree.key, u:os_inorder(tree.right))) } }
-def u:os_audit(tree) { "Audit ordering, balance, cached height, and cached size."; if tree.empty { {ok_flag: eq(tree.height, 0) * eq(tree.size, 0), empty_flag: 1, minimum: 0, maximum: 0, height: 0, size: 0} } else { left = u:os_audit(tree.left); right = u:os_audit(tree.right); expected_height = 1 + u:os_higher(left.height, right.height); expected_size = 1 + left.size + right.size; left_order = if left.empty_flag { 1 } else { lt(left.maximum, tree.key) }; right_order = if right.empty_flag { 1 } else { gt(right.minimum, tree.key) }; balance = left.height - right.height; {ok_flag: left.ok_flag * right.ok_flag * left_order * right_order * eq(tree.height, expected_height) * eq(tree.size, expected_size) * (1 - gt(abs(balance), 1)), empty_flag: 0, minimum: if left.empty_flag { tree.key } else { left.minimum }, maximum: if right.empty_flag { tree.key } else { right.maximum }, height: expected_height, size: expected_size} } }
-def u:os_valid(tree) { "Return one when all order-statistic AVL invariants hold."; u:os_audit(tree).ok_flag }
-def u:os_add_values(tree, values, index) { "Recursively insert vector values beginning at index."; if eq(index, tally(values)) { ok(tree) } else { u:os_add_values(u:os_insert(tree, take(values, 0, index))?, values, index + 1) } }
-def u:os_from_values(values) { "Build an order-statistic AVL set from a numeric vector."; if eq(rank(values), 1) { u:os_add_values(u:os_empty(), values, 0) } else { err({kind: "values", message: "values must be a vector"}) } }
+def u:os_empty() {
+  "Create an empty order-statistic AVL tree.";
+  {empty: 1, height: 0, size: 0}
+}
+def u:os_higher(a, b) {
+  "Return the greater of two numeric scalars.";
+  if gt(a, b) {
+    a
+  } else {
+    b
+  }
+}
+def u:os_make(key, left, right) {
+  "Build a node with derived height and subtree size caches.";
+  {empty: 0, key: key, left: left, right: right, height: 1 + u:os_higher(left.height, right.height), size: 1 + left.size + right.size}
+}
+def u:os_factor(tree) {
+  "Return a node's left-minus-right height balance.";
+  if tree.empty {
+    0
+  } else {
+    tree.left.height - tree.right.height
+  }
+}
+def u:os_rotate_right(top) {
+  "Apply an immutable right rotation and recompute caches.";
+  pivot = top.left;
+  u:os_make(pivot.key, pivot.left, u:os_make(top.key, pivot.right, top.right))
+}
+def u:os_rotate_left(top) {
+  "Apply an immutable left rotation and recompute caches.";
+  pivot = top.right;
+  u:os_make(pivot.key, u:os_make(top.key, top.left, pivot.left), pivot.right)
+}
+def u:os_rebalance(tree, key) {
+  "Restore AVL balance after inserting key.";
+  balance = u:os_factor(tree);
+  if gt(balance, 1) {
+    if lt(key, tree.left.key) { u:os_rotate_right(tree) } else { u:os_rotate_right(u:os_make(tree.key, u:os_rotate_left(tree.left), tree.right)) }
+  } else {
+    if lt(balance, -1) {
+      if gt(key, tree.right.key) { u:os_rotate_left(tree) } else { u:os_rotate_left(u:os_make(tree.key, tree.left, u:os_rotate_right(tree.right))) }
+    } else {
+      tree
+    }
+  }
+}
+def u:os_insert(tree, key) {
+  "Insert a scalar key persistently, treating duplicates as unchanged.";
+  if eq(rank(key), 0) {
+    if tree.empty {
+      ok(u:os_make(key, u:os_empty(), u:os_empty()))
+    } else {
+      if lt(key, tree.key) {
+        ok(u:os_rebalance(u:os_make(tree.key, u:os_insert(tree.left, key)?, tree.right), key))
+      } else {
+        if gt(key, tree.key) {
+          ok(u:os_rebalance(u:os_make(tree.key, tree.left, u:os_insert(tree.right, key)?), key))
+        } else {
+          ok(tree)
+        }
+      }
+    }
+  } else {
+    err({kind: "key", message: "keys must be numeric scalars"})
+  }
+}
+def u:os_select(tree, index) {
+  "Return the zero-based index-th key using cached subtree sizes.";
+  if eq(rank(index), 0) * eq(index, floor(index)) * (1 - lt(index, 0)) {
+    if tree.empty + (1 - lt(index, tree.size)) {
+      err({kind: "index", message: "select index is outside the tree"})
+    } else {
+      left_size = tree.left.size;
+      if lt(index, left_size) { u:os_select(tree.left, index) } else {
+        if eq(index, left_size) {
+          ok(tree.key)
+        } else { u:os_select(tree.right, index - left_size - 1) }
+      }
+    }
+  } else {
+    err({kind: "index", message: "select index must be a nonnegative integer scalar"})
+  }
+}
+def u:os_rank(tree, key) {
+  "Return the sorted insertion position, or number of stored keys below key.";
+  if eq(rank(key), 0) {
+    if tree.empty {
+      ok(0)
+    } else {
+      if lt(key, tree.key) { u:os_rank(tree.left, key) } else {
+        if gt(key, tree.key) {
+          ok(tree.left.size + 1 + u:os_rank(tree.right, key)?)
+        } else {
+          ok(tree.left.size)
+        }
+      }
+    }
+  } else {
+    err({kind: "key", message: "rank key must be a numeric scalar"})
+  }
+}
+def u:os_inorder(tree) {
+  "Return all keys in ascending order.";
+  if tree.empty {
+    fill([0], 0)
+  } else {
+    concat(u:os_inorder(tree.left), concat(tree.key, u:os_inorder(tree.right)))
+  }
+}
+def u:os_audit(tree) {
+  "Audit ordering, balance, cached height, and cached size.";
+  if tree.empty {
+    {ok_flag: eq(tree.height, 0) * eq(tree.size, 0), empty_flag: 1, minimum: 0, maximum: 0, height: 0, size: 0}
+  } else {
+    left = u:os_audit(tree.left);
+    right = u:os_audit(tree.right);
+    expected_height = 1 + u:os_higher(left.height, right.height);
+    expected_size = 1 + left.size + right.size;
+    left_order = if left.empty_flag {
+      1
+    } else {
+      lt(left.maximum, tree.key)
+    };
+    right_order = if right.empty_flag {
+      1
+    } else {
+      gt(right.minimum, tree.key)
+    };
+    balance = left.height - right.height;
+    {ok_flag: left.ok_flag * right.ok_flag * left_order * right_order * eq(tree.height, expected_height) * eq(tree.size, expected_size) * (1 - gt(abs(balance), 1)), empty_flag: 0, minimum: if left.empty_flag {
+        tree.key
+      } else {
+        left.minimum
+      }, maximum: if right.empty_flag {
+        tree.key
+      } else {
+        right.maximum
+      }, height: expected_height, size: expected_size}
+  }
+}
+def u:os_valid(tree) {
+  "Return one when all order-statistic AVL invariants hold.";
+  u:os_audit(tree).ok_flag
+}
+def u:os_add_values(tree, values, index) {
+  "Recursively insert vector values beginning at index.";
+  if eq(index, tally(values)) {
+    ok(tree)
+  } else { u:os_add_values(u:os_insert(tree, take(values, 0, index))?, values, index + 1) }
+}
+def u:os_from_values(values) {
+  "Build an order-statistic AVL set from a numeric vector.";
+  if eq(rank(values), 1) { u:os_add_values(u:os_empty(), values, 0) } else {
+    err({kind: "values", message: "values must be a vector"})
+  }
+}

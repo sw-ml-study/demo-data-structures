@@ -1,14 +1,15 @@
 # Shared production definitions for chunked vector.
 
-def u:new_chunked(chunk_width) { "Create an empty chunked value.";
+def u:new_chunked(chunk_width) {
+  "Create an empty chunked value.";
   if eq(chunk_width, floor(chunk_width)) {
     if lt(0, chunk_width) {
       ok({
-        chunks: reshape(fill([chunk_width], 0), [1, chunk_width]),
-        size: 0,
-        capacity: chunk_width,
-        chunk_width: chunk_width
-      })
+          chunks: reshape(fill([chunk_width], 0), [1, chunk_width]),
+          size: 0,
+          capacity: chunk_width,
+          chunk_width: chunk_width
+        })
     } else {
       err({kind: "chunk-width", message: "chunk width must be positive"})
     }
@@ -17,23 +18,39 @@ def u:new_chunked(chunk_width) { "Create an empty chunked value.";
   }
 }
 
-def u:valid(vector) { "Check whether vector satisfies the valid invariant.";
+def u:valid(vector) {
+  "Check whether vector satisfies the valid invariant.";
   if eq(rank(vector.chunks), 2) {
     dims = shape(vector.chunks);
     width = take(dims, 0, 1);
     if eq(vector.chunk_width, width) {
       if eq(vector.capacity, size(vector.chunks)) {
         if eq(vector.size, floor(vector.size)) {
-          if lt(vector.size, 0) { 0 } else {
-            if lt(vector.capacity, vector.size) { 0 } else { 1 }
+          if lt(vector.size, 0) {
+            0
+          } else {
+            if lt(vector.capacity, vector.size) {
+              0
+            } else {
+              1
+            }
           }
-        } else { 0 }
-      } else { 0 }
-    } else { 0 }
-  } else { 0 }
+        } else {
+          0
+        }
+      } else {
+        0
+      }
+    } else {
+      0
+    }
+  } else {
+    0
+  }
 }
 
-def u:grow(vector) { "Return the grow result for the supplied vector.";
+def u:grow(vector) {
+  "Return the grow result for the supplied vector.";
   row = reshape(fill([vector.chunk_width], 0), [1, vector.chunk_width]);
   chunks = concat(vector.chunks, row, 0);
   {
@@ -44,19 +61,22 @@ def u:grow(vector) { "Return the grow result for the supplied vector.";
   }
 }
 
-def u:append(vector, value) { "Add the supplied item and return the updated structure.";
+def u:append(vector, value) {
+  "Add the supplied item and return the updated structure.";
   if u:valid(vector) {
     if eq(rank(value), 0) {
-      available = if eq(vector.size, vector.capacity) { u:grow(vector) } else { vector };
+      available = if eq(vector.size, vector.capacity) { u:grow(vector) } else {
+        vector
+      };
       flat = flatten(available.chunks);
       updated = scatter(flat, available.size, value);
       chunks = reshape(updated, shape(available.chunks));
       ok({
-        chunks: chunks,
-        size: available.size + 1,
-        capacity: available.capacity,
-        chunk_width: available.chunk_width
-      })
+          chunks: chunks,
+          size: available.size + 1,
+          capacity: available.capacity,
+          chunk_width: available.chunk_width
+        })
     } else {
       err({kind: "value", message: "append accepts one numeric scalar"})
     }
@@ -65,7 +85,8 @@ def u:append(vector, value) { "Add the supplied item and return the updated stru
   }
 }
 
-def u:read_at(vector, index) { "Find at in the supplied structure.";
+def u:read_at(vector, index) {
+  "Find at in the supplied structure.";
   if u:valid(vector) {
     if eq(index, floor(index)) {
       if lt(index, 0) {

@@ -1,11 +1,14 @@
 include "src/linked_lists/indexed_doubly_linked_route.mlpl";
 
 @test {name: "doubly linked insertions and reciprocal traversal", tags: ["linked-list", "doubly-linked", "insertion"]}
-def u:test_dll_insertions() { "Verify head, tail, before, and after insertion with reciprocal traversal and retained input.";
-  base = u:dll_from_values([100,300])?; retained = base;
+def u:test_dll_insertions() {
+  "Verify head, tail, before, and after insertion with reciprocal traversal and retained input.";
+  base = u:dll_from_values([100,300])?;
+  retained = base;
   middle = u:dll_insert_after(base, base.head, 200)?;
   before = u:dll_insert_before(middle.list, middle.list.tail, 250)?;
-  headed = u:dll_insert_head(before.list, 50)?; tailed = u:dll_insert_tail(headed.list, 400)?;
+  headed = u:dll_insert_head(before.list, 50)?;
+  tailed = u:dll_insert_tail(headed.list, 400)?;
   u:assert_eq(u:dll_forward(tailed.list)?, [50,100,200,250,300,400], "all insertion positions")?;
   u:assert_eq(u:dll_reverse(tailed.list)?, [400,300,250,200,100,50], "reverse traversal")?;
   u:assert_true(u:dll_valid(tailed.list), "reciprocal invariant")?;
@@ -14,9 +17,13 @@ def u:test_dll_insertions() { "Verify head, tail, before, and after insertion wi
 }
 
 @test {name: "doubly linked head middle tail deletion", tags: ["linked-list", "doubly-linked", "deletion"]}
-def u:test_dll_deletions() { "Verify deletion repairs head, middle, tail, and singleton endpoints without recycling handles.";
-  list = u:dll_from_values([10,20,30,40])?; retained = list;
-  no_head = u:dll_delete(list, list.head)?; no_middle = u:dll_delete(no_head, 2)?; no_tail = u:dll_delete(no_middle, no_middle.tail)?;
+def u:test_dll_deletions() {
+  "Verify deletion repairs head, middle, tail, and singleton endpoints without recycling handles.";
+  list = u:dll_from_values([10,20,30,40])?;
+  retained = list;
+  no_head = u:dll_delete(list, list.head)?;
+  no_middle = u:dll_delete(no_head, 2)?;
+  no_tail = u:dll_delete(no_middle, no_middle.tail)?;
   u:assert_eq(u:dll_forward(no_tail)?, [20], "head middle tail deletions")?;
   u:assert_eq(u:dll_reverse(no_tail)?, [20], "singleton reverse")?;
   empty = u:dll_delete(no_tail, no_tail.head)?;
@@ -27,8 +34,11 @@ def u:test_dll_deletions() { "Verify deletion repairs head, middle, tail, and si
 }
 
 @test {name: "doubly linked values and stale handles", tags: ["linked-list", "doubly-linked", "boundary"]}
-def u:test_dll_values_handles() { "Verify duplicate and negative values, stored zero, stale handles, invalid handles, and monotonic new handles.";
-  list = u:dll_from_values([-5,0,-5])?; removed = u:dll_delete(list, 1)?; appended = u:dll_insert_tail(removed, 0)?;
+def u:test_dll_values_handles() {
+  "Verify duplicate and negative values, stored zero, stale handles, invalid handles, and monotonic new handles.";
+  list = u:dll_from_values([-5,0,-5])?;
+  removed = u:dll_delete(list, 1)?;
+  appended = u:dll_insert_tail(removed, 0)?;
   u:assert_eq(u:dll_forward(appended.list)?, [-5,-5,0], "duplicate negative and zero values")?;
   u:assert_eq(appended.handle, 3, "deleted handle not recycled")?;
   u:assert_eq(u:dll_value(appended.list, 3)?, 0, "stored zero by handle")?;
@@ -40,7 +50,8 @@ def u:test_dll_values_handles() { "Verify duplicate and negative values, stored 
 }
 
 @test {name: "doubly linked corruption and cycle detection", tags: ["linked-list", "doubly-linked", "invariant"]}
-def u:test_dll_corruption() { "Verify reciprocal corruption, disconnected nodes, and cycles are rejected before public traversal or mutation.";
+def u:test_dll_corruption() {
+  "Verify reciprocal corruption, disconnected nodes, and cycles are rejected before public traversal or mutation.";
   list = u:dll_from_values([1,2,3])?;
   broken = {values: list.values, previous: list.previous, next: scatter(list.next, 0, 2), active: list.active, head: list.head, tail: list.tail, size: list.size};
   cycle = {values: list.values, previous: scatter(list.previous, 0, 2), next: scatter(list.next, 2, 0), active: list.active, head: list.head, tail: list.tail, size: list.size};

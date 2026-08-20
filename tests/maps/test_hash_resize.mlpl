@@ -1,8 +1,11 @@
 include "src/maps/growing_meter_hash_map.mlpl";
 
 @test {name: "contract", tags: ["migration", "maps"]}
-def u:test_contract() { "Run this script's conformance assertions.";
-  m1 = u:put(u:new_map(4), 0, 10)?; m2 = u:put(m1, 4, 20)?; boundary_map = u:put(m2, 8, 0)?;
+def u:test_contract() {
+  "Run this script's conformance assertions.";
+  m1 = u:put(u:new_map(4), 0, 10)?;
+  m2 = u:put(m1, 4, 20)?;
+  boundary_map = u:put(m2, 8, 0)?;
   u:assert_eq(boundary_map.capacity, 4, "exact 75 percent should not resize")?;
   first_growth = u:put(boundary_map, 12, 40)?;
   u:assert_eq(first_growth.capacity, 9, "resize capacity should be 2n+1")?;
@@ -16,7 +19,10 @@ def u:test_contract() { "Run this script's conformance assertions.";
   u:assert_eq(updated_map.size, 4, "duplicate update changed size")?;
   deleted_map = u:remove(updated_map, 8)?;
   u:assert_eq(u:count(deleted_map.states, 2, 0), 1, "delete did not create tombstone")?;
-  stage1 = u:put(deleted_map, -1, -10)?; stage2 = u:put(stage1, 20, 50)?; stage3 = u:put(stage2, 24, 60)?; cleaned_map = u:put(stage3, 28, 70)?;
+  stage1 = u:put(deleted_map, -1, -10)?;
+  stage2 = u:put(stage1, 20, 50)?;
+  stage3 = u:put(stage2, 24, 60)?;
+  cleaned_map = u:put(stage3, 28, 70)?;
   u:assert_eq(cleaned_map.capacity, 19, "second growth failed")?;
   u:assert_eq(u:count(cleaned_map.states, 2, 0), 0, "rehash retained tombstone")?;
   u:assert_eq(u:get(cleaned_map, -1)?, -10, "negative key lost in rehash")?;

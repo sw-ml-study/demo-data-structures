@@ -2,35 +2,62 @@
 include "src/trees/interval_tree.mlpl";
 
 @test {name: "interval tree rotations and validation", tags: ["trees", "intervals", "native"]}
-def u:test_it_rotations() { "Verify every AVL rotation and rejection of corrupt caches, ordering, balance, and intervals.";
-  ll = u:it_from_vectors([30, 20, 10], [31, 21, 11])?; rr = u:it_from_vectors([10, 20, 30], [11, 21, 31])?; lr = u:it_from_vectors([30, 10, 20], [31, 11, 21])?; rl = u:it_from_vectors([10, 30, 20], [11, 31, 21])?;
-  u:assert_eq([ll.start, rr.start, lr.start, rl.start], [20, 20, 20, 20], "rotation roots differ")?; u:assert_true(u:it_valid(ll) * u:it_valid(rr) * u:it_valid(lr) * u:it_valid(rl), "rotated tree invalid")?;
-  bad_height = {empty: 0, start: ll.start, end: ll.end, left: ll.left, right: ll.right, height: 9, max_end: ll.max_end}; bad_max = {empty: 0, start: ll.start, end: ll.end, left: ll.left, right: ll.right, height: ll.height, max_end: 999};
-  bad_order = u:it_make(5, 6, u:it_make(8, 9, u:it_empty(), u:it_empty()), u:it_empty()); bad_balance = u:it_make(3, 4, u:it_make(2, 3, u:it_make(1, 2, u:it_empty(), u:it_empty()), u:it_empty()), u:it_empty());
-  u:assert_false(u:it_valid(bad_height), "bad height passed")?; u:assert_false(u:it_valid(bad_max), "bad maximum endpoint passed")?; u:assert_false(u:it_valid(bad_order), "bad ordering passed")?; u:assert_false(u:it_valid(bad_balance), "bad balance passed")?;
+def u:test_it_rotations() {
+  "Verify every AVL rotation and rejection of corrupt caches, ordering, balance, and intervals.";
+  ll = u:it_from_vectors([30, 20, 10], [31, 21, 11])?;
+  rr = u:it_from_vectors([10, 20, 30], [11, 21, 31])?;
+  lr = u:it_from_vectors([30, 10, 20], [31, 11, 21])?;
+  rl = u:it_from_vectors([10, 30, 20], [11, 31, 21])?;
+  u:assert_eq([ll.start, rr.start, lr.start, rl.start], [20, 20, 20, 20], "rotation roots differ")?;
+  u:assert_true(u:it_valid(ll) * u:it_valid(rr) * u:it_valid(lr) * u:it_valid(rl), "rotated tree invalid")?;
+  bad_height = {empty: 0, start: ll.start, end: ll.end, left: ll.left, right: ll.right, height: 9, max_end: ll.max_end};
+  bad_max = {empty: 0, start: ll.start, end: ll.end, left: ll.left, right: ll.right, height: ll.height, max_end: 999};
+  bad_order = u:it_make(5, 6, u:it_make(8, 9, u:it_empty(), u:it_empty()), u:it_empty());
+  bad_balance = u:it_make(3, 4, u:it_make(2, 3, u:it_make(1, 2, u:it_empty(), u:it_empty()), u:it_empty()), u:it_empty());
+  u:assert_false(u:it_valid(bad_height), "bad height passed")?;
+  u:assert_false(u:it_valid(bad_max), "bad maximum endpoint passed")?;
+  u:assert_false(u:it_valid(bad_order), "bad ordering passed")?;
+  u:assert_false(u:it_valid(bad_balance), "bad balance passed")?;
   ok({test: "interval-tree-rotations", cases: 6})
 }
 
 @test {name: "interval tree half-open conflict search", tags: ["trees", "search", "native"]}
-def u:test_it_search() { "Verify empty, touching, nested, signed, left-pruned, right-pruned, and absent searches.";
-  empty_hit = u:it_find_overlap(u:it_empty(), 0, 1)?; u:assert_false(empty_hit.found, "empty tree reported conflict")?;
+def u:test_it_search() {
+  "Verify empty, touching, nested, signed, left-pruned, right-pruned, and absent searches.";
+  empty_hit = u:it_find_overlap(u:it_empty(), 0, 1)?;
+  u:assert_false(empty_hit.found, "empty tree reported conflict")?;
   tree = u:it_from_vectors([20, -10, 40, 5, 30, 60], [25, 0, 50, 15, 35, 80])?;
   u:assert_true(u:it_valid(tree), "search tree invalid")?;
-  left = u:it_find_overlap(tree, -5, -1)?; u:assert_eq([left.found, left.start, left.end], [1, -10, 0], "negative left conflict failed")?;
-  nested = u:it_find_overlap(tree, 42, 44)?; u:assert_eq([nested.found, nested.start, nested.end], [1, 40, 50], "nested conflict failed")?;
-  right = u:it_find_overlap(tree, 75, 90)?; u:assert_eq([right.found, right.start, right.end], [1, 60, 80], "right conflict failed")?;
-  touching = u:it_find_overlap(tree, 15, 20)?; u:assert_false(touching.found, "touching boundaries should not overlap")?;
-  absent = u:it_find_overlap(tree, 50, 60)?; u:assert_false(absent.found, "gap should not overlap")?;
-  u:assert_err(u:it_find_overlap(tree, 5, 5), "empty query should fail")?; u:assert_err(u:it_find_overlap(tree, [1], 2), "vector query endpoint should fail")?;
+  left = u:it_find_overlap(tree, -5, -1)?;
+  u:assert_eq([left.found, left.start, left.end], [1, -10, 0], "negative left conflict failed")?;
+  nested = u:it_find_overlap(tree, 42, 44)?;
+  u:assert_eq([nested.found, nested.start, nested.end], [1, 40, 50], "nested conflict failed")?;
+  right = u:it_find_overlap(tree, 75, 90)?;
+  u:assert_eq([right.found, right.start, right.end], [1, 60, 80], "right conflict failed")?;
+  touching = u:it_find_overlap(tree, 15, 20)?;
+  u:assert_false(touching.found, "touching boundaries should not overlap")?;
+  absent = u:it_find_overlap(tree, 50, 60)?;
+  u:assert_false(absent.found, "gap should not overlap")?;
+  u:assert_err(u:it_find_overlap(tree, 5, 5), "empty query should fail")?;
+  u:assert_err(u:it_find_overlap(tree, [1], 2), "vector query endpoint should fail")?;
   ok({test: "interval-tree-search", cases: 8})
 }
 
 @test {name: "interval tree persistence and duplicate starts", tags: ["trees", "persistent", "native"]}
-def u:test_it_persistence() { "Verify singleton, replacement policy, malformed insertion, nested intervals, and retained roots.";
-  one = u:it_insert(u:it_empty(), 0, 10)?; u:assert_eq([one.start, one.end, one.max_end], [0, 10, 10], "singleton failed")?;
-  replaced = u:it_insert(one, 0, 20)?; u:assert_eq(replaced.end, 20, "duplicate start did not replace endpoint")?; u:assert_eq(one.end, 10, "replacement changed retained singleton")?;
-  snapshot = u:it_from_vectors([10, 30], [100, 40])?; later = u:it_insert(snapshot, 20, 25)?; u:assert_true(u:it_valid(snapshot) * u:it_valid(later), "persistent trees invalid")?; u:assert_eq(snapshot.max_end, 100, "nested maximum cache failed")?;
-  u:assert_err(u:it_insert(snapshot, 4, 4), "empty interval should fail")?; u:assert_err(u:it_insert(snapshot, 8, 2), "reversed interval should fail")?; u:assert_err(u:it_from_vectors([1, 2], [3]), "mismatched vectors should fail")?;
+def u:test_it_persistence() {
+  "Verify singleton, replacement policy, malformed insertion, nested intervals, and retained roots.";
+  one = u:it_insert(u:it_empty(), 0, 10)?;
+  u:assert_eq([one.start, one.end, one.max_end], [0, 10, 10], "singleton failed")?;
+  replaced = u:it_insert(one, 0, 20)?;
+  u:assert_eq(replaced.end, 20, "duplicate start did not replace endpoint")?;
+  u:assert_eq(one.end, 10, "replacement changed retained singleton")?;
+  snapshot = u:it_from_vectors([10, 30], [100, 40])?;
+  later = u:it_insert(snapshot, 20, 25)?;
+  u:assert_true(u:it_valid(snapshot) * u:it_valid(later), "persistent trees invalid")?;
+  u:assert_eq(snapshot.max_end, 100, "nested maximum cache failed")?;
+  u:assert_err(u:it_insert(snapshot, 4, 4), "empty interval should fail")?;
+  u:assert_err(u:it_insert(snapshot, 8, 2), "reversed interval should fail")?;
+  u:assert_err(u:it_from_vectors([1, 2], [3]), "mismatched vectors should fail")?;
   ok({test: "interval-tree-persistence", cases: 8})
 }
 u:run_registered_tests()

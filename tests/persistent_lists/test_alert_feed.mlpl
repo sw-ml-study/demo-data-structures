@@ -3,7 +3,8 @@
 include "src/persistent_lists/alert_feed.mlpl";
 
 @test {name: "persistent alert list contract", tags: ["persistent", "unit", "native"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   empty = u:empty_feed();
   u:assert_true(u:valid(empty), "empty sentinel should be valid")?;
   u:assert_eq(u:alert_ids(empty)?, fill([0], 0), "empty traversal should be empty")?;

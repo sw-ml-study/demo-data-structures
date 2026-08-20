@@ -1,11 +1,14 @@
 include "src/trees/team_hierarchy_traversals.mlpl";
 
 @test {name: "contract", tags: ["migration", "trees"]}
-def u:test_contract() { "Run this script's conformance assertions.";
+def u:test_contract() {
+  "Run this script's conformance assertions.";
   none = u:empty_tree();
   u:assert_eq(u:preorder(none), fill([0], 0), "empty preorder failed")?;
-  empty_indexed = u:encode(none, u:empty_arena()); u:assert_true(u:valid(empty_indexed.arena, empty_indexed.root), "empty indexed tree invalid")?;
-  singleton = u:node(-5, none, none); u:assert_eq(u:inorder(singleton), [-5], "singleton failed")?;
+  empty_indexed = u:encode(none, u:empty_arena());
+  u:assert_true(u:valid(empty_indexed.arena, empty_indexed.root), "empty indexed tree invalid")?;
+  singleton = u:node(-5, none, none);
+  u:assert_eq(u:inorder(singleton), [-5], "singleton failed")?;
   balanced = u:node(4, u:node(2, u:node(-1, none, none), u:node(2, none, none)), u:node(6, u:node(5, none, none), u:node(7, none, none)));
   encoded = u:encode(balanced, u:empty_arena());
   u:assert_eq(u:preorder(balanced), [4, 2, -1, 2, 6, 5, 7], "balanced preorder failed")?;

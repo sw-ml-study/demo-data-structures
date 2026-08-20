@@ -1,8 +1,10 @@
 include "src/trees/persistent_reservation_cancellation.mlpl";
 
 @test {name: "contract", tags: ["migration", "trees"]}
-def u:test_contract() { "Run this script's conformance assertions.";
-  empty = u:empty_bst(); u:assert_err(u:remove(empty, 1), "empty removal should fail")?;
+def u:test_contract() {
+  "Run this script's conformance assertions.";
+  empty = u:empty_bst();
+  u:assert_err(u:remove(empty, 1), "empty removal should fail")?;
   leaf_tree = u:insert(u:insert(u:insert(empty, 4, 40), 2, 20), 6, 60);
   leaf_removed = u:remove(leaf_tree, 2)?;
   u:assert_eq(u:inorder_keys(leaf_removed), [4, 6], "leaf deletion failed")?;
@@ -17,18 +19,25 @@ def u:test_contract() { "Run this script's conformance assertions.";
   u:assert_eq(u:lookup(two_child_removed, 5)?, 0, "successor stored zero lost")?;
   u:assert_true(u:valid(two_child_removed), "two-child result invalid")?;
   u:assert_eq(u:inorder_keys(two_child_tree), [1, 2, 3, 4, 5, 6, 7], "root deletion mutated old root")?;
-  successor_path_tree = u:insert(two_child_tree, 9, 90); successor_path_tree = u:insert(successor_path_tree, 8, 80);
+  successor_path_tree = u:insert(two_child_tree, 9, 90);
+  successor_path_tree = u:insert(successor_path_tree, 8, 80);
   removed_six = u:remove(successor_path_tree, 6)?;
   u:assert_eq(u:inorder_keys(removed_six), [1, 2, 3, 4, 5, 7, 8, 9], "successor path rebuild failed")?;
   u:assert_true(u:valid(removed_six), "successor path result invalid")?;
   u:assert_err(u:remove(two_child_tree, 99), "missing deletion should fail")?;
-  negative_tree = u:insert(two_child_tree, -3, -30); negative_removed = u:remove(negative_tree, -3)?;
+  negative_tree = u:insert(two_child_tree, -3, -30);
+  negative_removed = u:remove(negative_tree, -3)?;
   u:assert_err(u:lookup(negative_removed, -3), "negative key deletion failed")?;
-  revised = u:insert(two_child_tree, 4, 400); after_revised_delete = u:remove(revised, 4)?;
+  revised = u:insert(two_child_tree, 4, 400);
+  after_revised_delete = u:remove(revised, 4)?;
   u:assert_eq(u:size(after_revised_delete), 6, "update policy incompatible with delete")?;
-  single = u:insert(empty, 1, 10); emptied = u:remove(single, 1)?;
+  single = u:insert(empty, 1, 10);
+  emptied = u:remove(single, 1)?;
   u:assert_true(emptied.empty, "single root did not delete to empty")?;
-  chain = u:insert(u:insert(u:insert(empty, 1, 10), 2, 20), 3, 30); chain = u:remove(chain, 1)?; chain = u:remove(chain, 2)?; chain = u:remove(chain, 3)?;
+  chain = u:insert(u:insert(u:insert(empty, 1, 10), 2, 20), 3, 30);
+  chain = u:remove(chain, 1)?;
+  chain = u:remove(chain, 2)?;
+  chain = u:remove(chain, 3)?;
   u:assert_true(chain.empty, "repeated deletion did not reach empty")?;
   u:assert_eq(u:size(two_child_removed), 6, "size after deletion incorrect")?;
   ok({test: "persistent-bst-delete", cases: 18})

@@ -1,10 +1,12 @@
 # Shared production definitions for growable vector.
 
-def u:new_vector() { "Create an empty vector value.";
+def u:new_vector() {
+  "Create an empty vector value.";
   {data: fill([0], 0), size: 0}
 }
 
-def u:from_array(data) { "Convert the supplied representation using from array.";
+def u:from_array(data) {
+  "Convert the supplied representation using from array.";
   if eq(rank(data), 1) {
     ok({data: data, size: tally(data)})
   } else {
@@ -12,15 +14,25 @@ def u:from_array(data) { "Convert the supplied representation using from array."
   }
 }
 
-def u:valid(vector) { "Check whether vector satisfies the valid invariant.";
+def u:valid(vector) {
+  "Check whether vector satisfies the valid invariant.";
   if eq(rank(vector.data), 1) {
     if eq(vector.size, floor(vector.size)) {
-      if lt(vector.size, 0) { 0 } else { eq(vector.size, tally(vector.data)) }
-    } else { 0 }
-  } else { 0 }
+      if lt(vector.size, 0) {
+        0
+      } else {
+        eq(vector.size, tally(vector.data))
+      }
+    } else {
+      0
+    }
+  } else {
+    0
+  }
 }
 
-def u:append(vector, value) { "Add the supplied item and return the updated structure.";
+def u:append(vector, value) {
+  "Add the supplied item and return the updated structure.";
   if u:valid(vector) {
     if eq(rank(value), 0) {
       data = concat(vector.data, value);
@@ -33,7 +45,8 @@ def u:append(vector, value) { "Add the supplied item and return the updated stru
   }
 }
 
-def u:pop(vector) { "Remove the next item and return the resulting structure.";
+def u:pop(vector) {
+  "Remove the next item and return the resulting structure.";
   if u:valid(vector) {
     if eq(vector.size, 0) {
       err({kind: "empty", message: "cannot pop an empty growable vector"})
